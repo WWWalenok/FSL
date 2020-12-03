@@ -13,6 +13,11 @@ namespace fsl
 	{
 	public:
 		Img(int, int);
+
+		Img(int, int, unsigned char*, int = 0);
+
+		Img(int, int, unsigned char**, int = 0);
+
 		~Img();
 
 		int Get(int, int);
@@ -65,6 +70,24 @@ namespace fsl
 			Clear();
 		}
 
+		Img(int x, int y, unsigned char* frame, int oor = 0)
+		{
+			Img::x = x;
+			Img::y = y;
+			l = x * y;
+			val = new unsigned char[l];
+			for (int i = 0; i < x; i++) for (int j = 0; j < y; j++) val[i + x * j] = frame[i + x * j];
+		}
+
+		Img(int x, int y, unsigned char** frame, int oor = 0)
+		{
+			Img::x = x;
+			Img::y = y;
+			l = x * y;
+			val = new unsigned char[l];
+			for(int i = 0; i < x; i++) for (int j = 0; j < y; j++) val[i + x * j] = frame[i][j];
+		}
+
 		~Img()
 		{
 			delete[] val;
@@ -76,8 +99,8 @@ namespace fsl
 	};
 
 
-#define VoxelX 297
-#define VoxelY 210
+#define VoxelX 400
+#define VoxelY 400
 #define VoxelZ 256
 
 	unsigned char voxel[VoxelX][VoxelY][VoxelZ / 8];
@@ -124,12 +147,13 @@ namespace fsl
 
 		if (imgs.size() > 0)
 		{
-			for(int i = 0; i < imgs)
+			for (int i = 0; i < imgs.size(); i++) imgs[i].~Img();
+			imgs.clear();
 		}
 
 		for (int f = 0; f < framecount; f++)
 		{
-			
+			imgs.push_back(Img(frameX, frameY, inframes[f]));
 		}
 
 		Prepare();
