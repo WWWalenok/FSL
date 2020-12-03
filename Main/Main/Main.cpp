@@ -9,19 +9,86 @@
 namespace fsl
 {
 
+	class Img
+	{
+	public:
+		Img(int, int);
+		~Img();
+
+		int Get(int, int);
+
+		void Set(int, int, int);
+
+		void Clear();
+
+		unsigned char *&Value();
+
+		int X();
+
+		int Y();
+
+		int L();
+
+		int Get(int _x, int _y)
+		{
+			_x = (_x >= x) ? x - 1 : ((_x < 0) ? 0 : x);
+			_y = (_y >= y) ? y - 1 : ((_y < 0) ? 0 : y);
+			return val[_x + x * _y];
+		}
+
+		void Set(int _x, int _y, int value)
+		{
+			_x = (_x >= x) ? x - 1 : ((_x < 0) ? 0 : x);
+			_y = (_y >= y) ? y - 1 : ((_y < 0) ? 0 : y);
+			val[_x + x * _y] = (value > 255) ? 255 : ((value < 0) ? 0 : value);
+		}
+
+		void Clear() { for (int i = 0; i < l; i++) val[i] = 0; }
+
+		int X() { return x; }
+
+		int Y() { return y; }
+
+		int L() { return l; }
+
+		unsigned char *&Value()
+		{
+			return val;
+		}
+
+		Img(int x, int y)
+		{
+			Img::x = x;
+			Img::y = y;
+			l = x * y;
+			val = new unsigned char[l];
+			Clear();
+		}
+
+		~Img()
+		{
+			delete[] val;
+		}
+	private:
+
+		unsigned char *val;
+		int x, y, l;
+	};
+
+
 #define VoxelX 297
 #define VoxelY 210
 #define VoxelZ 256
 
 	unsigned char voxel[VoxelX][VoxelY][VoxelZ / 8];
 
-	std::vector<unsigned char> **imgs, **blurred, **buffer;
+	std::vector<Img> imgs, blurred, buffer;
 
-	int framecount;
+	int framecount, immaxX, immaxY;
 
-	std::vector<double*> cams, list;
+	std::vector<double*> cams, lists, foots;
 
-	void GetFirsCamPos(int num);
+	void GetFirsCamPos();
 
 	void GetNewCamPos();
 
@@ -31,31 +98,55 @@ namespace fsl
 
 	void GetFirstVoxel();
 
+	void GetFoot();
+
+	void GetBestVoxel();
+
+	void Out();
+
 	void MainFunc();
 
 	void SetVoxelPoint(int x, int y, int z, bool val);
 
 	bool GetVoxelPoint(int x, int y, int z);
 
-	void MainFunc()
+	void Prepare()
 	{
+
+	}
+
+	void MainFunc(int inframecount, unsigned char ***inframes, int frameX, int frameY)
+	{
+		immaxX = frameX;
+		immaxY = frameY;
+
+		framecount = inframecount;
+
+		if (imgs.size() > 0)
+		{
+			for(int i = 0; i < imgs)
+		}
+
+		for (int f = 0; f < framecount; f++)
+		{
+			
+		}
+
 		Prepare();
 
-		std::thread **threads = new std::thread*[framecount - 1];
-
-		double **rets = new double*[framecount];
-
-		for (int i = 1; i < framecount; i++) threads[i - 1] = new std::thread(GetFirsCamPos, std::ref(i));
-
-		GetFirsCamPos(0);
-
-		for (int i = 1; i < framecount; i++) threads[i - 1]->join;
+		GetFirsCamPos();
 
 		GetBestedBorder();
 
 		GetNewCamPos();
 
+		GetFoot();
+
 		GetFirstVoxel();
+
+		GetBestVoxel();
+
+		Out();
 	}
 
 	void SetVoxelPoint(int x, int y, int z, bool val)
