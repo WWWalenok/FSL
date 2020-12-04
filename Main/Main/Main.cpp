@@ -337,6 +337,21 @@ namespace fsl
 					bbf = bf; bba = ba;
 				}
 			}
+			cam[0] = bb[0];
+			cam[3] = bb[1] - bb[0]; cam[3].SetLenght(1);
+			cam[2] = cam[3] / Vector3(0, 0, -1);
+			cam[2].z = bba; cam[2].SetLenght(1);
+			cam[1] = cam[3] / cam[2];
+
+			list[0] = Vector3(198.5, 105, 0) - s[0];
+			list[1] = Vector3(-198.5, 105, 0) - s[0];
+			list[2] = Vector3(-198.5, -105, 0) - s[0];
+			list[3] = Vector3(198.5, -105, 0) - s[0];
+			for (int i = 0; i < 4; i++)
+			{
+				list[i] = Vector3(list[i] * cam[1], list[i] * cam[2], list[i] * cam[3]); list[i] = list[i] / list[i].z * f / K;
+				list[i].x -= immaxX / 2; list[i].y -= immaxY / 2;
+			}
 
 		}
 	}
