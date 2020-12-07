@@ -352,7 +352,8 @@ namespace fsl
 				list[i] = Vector3(list[i] * cam[1], list[i] * cam[2], list[i] * cam[3]); list[i] = list[i] / list[i].z * f / K;
 				list[i].x -= immaxX / 2; list[i].y -= immaxY / 2;
 			}
-
+			lists.push_back(list);
+			cams.push_back(cam);
 		}
 	}
 
