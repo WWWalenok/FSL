@@ -111,13 +111,16 @@ namespace fsl
 	double min(double a, double b) { return (a > b) ? b : a; }
 	double max(double a, double b) { return (a < b) ? b : a; }
 
-	unsigned char voxel[VoxelX][VoxelY][VoxelZ / 8];
+	unsigned char ***voxel;
 
 	std::vector<Img> imgs, blurred, buffer;
 
 	int framecount, immaxX, immaxY;
 
 	std::vector<Vector3*> cams, lists, foots, inworld;
+	std::vector<double> focuss;
+
+	std::vector<double***> listsborder;
 
 	void GetCamPos(int);
 
@@ -145,6 +148,14 @@ namespace fsl
 
 	void Prepare()
 	{
+		for (int x = 0; x < VoxelX; x++)
+		{
+			voxel[x] = new unsigned char*[VoxelY];
+			for (int y = 0; y < VoxelY; y++)
+			{
+				voxel[x][y] = new unsigned char[VoxelZ];
+			}
+		}
 
 		for (int u = 0; u < framecount; u++)
 		{
@@ -346,6 +357,7 @@ namespace fsl
 			cam[2] = cam[3] / Vector3(0, 0, -1);
 			cam[2].z = bba; cam[2].SetLenght(1);
 			cam[1] = cam[3] / cam[2];
+			
 
 			list[0] = Vector3(198.5, 105, 0) - s[0];
 			list[1] = Vector3(-198.5, 105, 0) - s[0];
@@ -358,27 +370,33 @@ namespace fsl
 			}
 			lists.push_back(list);
 			cams.push_back(cam);
+			focuss.push_back(bbf);
 		}
 	}
 
 	void GetBestedBorder()
 	{
+		double tr = 17, tr2 = tr * 1, tr3 = tr * 1, w1 = 1, w2 = 0.7, w3 = 0.2, r;
+		double Krit[5], KritB[5], KritBB[5];
+		double Krite[4], KriteB[4], KriteBB[4];
+		double k1, k2, mk1, mk2, dk1, dk2, k1b, k1bb, k2b, k2bb;
+		for (int i = 0; i < 4; i++) KritBB[i] = -1e20;
+		for (int i = 0; i < 4; i++) KriteBB[i] = -1e20;
+		Vector3 P1, P2, P, A, B, C, D;
+		int t;
+
+		double _x, _y, disp[7]{ -0.71 * 22 * 1.2, -0.71 * 12 * 1.2, -0.71, 0,  0.71 ,0.71 * 12 * 1.2 ,0.71 * 22 * 1.2 };
+
 		for (int u = 0; u < framecount; u++)
 		{
-			double tr = 17, tr2 = tr * 1, tr3 = tr * 1, w1 = 1, w2 = 0.7, w3 = 0.2, r;
-			double Krit[5], KritB[5], KritBB[5];
-			double Krite[4], KriteB[4], KriteBB[4];
-			double k1, k2, mk1, mk2, dk1, dk2, k1b, k1bb, k2b, k2bb;
-			for (int i = 0; i < 4; i++) KritBB[i] = -1e20;
-			for (int i = 0; i < 4; i++) KriteBB[i] = -1e20;
-			Vector3 P1, P2, P, A, B, C, D;
-			int t;
 			for (int trys = 0; trys < 2; trys++) for (int i = 0; i < 4; i++)
 			{
 				A = lists[u][i];
 				B = lists[u][(i + 1 > 3) ? i + 1 - 4 : i];
 				C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i];
 				D = lists[u][(i + 3 > 3) ? i + 3 - 4 : i];
+				double r1 = (A - D).GetLenght();
+				double r2 = (B - C).GetLenght();
 				for (int E = 0; E < 5; E++)
 				{
 					P1 = A;
@@ -390,9 +408,7 @@ namespace fsl
 					for (int i = 0; i < 4; i++) KriteB[i] = -1e20;
 					for (int I = 0; I < 200; I++)
 					{
-						unsigned char buff[LineDisp][LineDeep * 2 + 1];
-
-						double _x, _y;
+						unsigned char buff[LineDisp][7];
 
 						k1 = mk1 + (2 - random) * dk1;
 						k2 = mk2 + (2 - random) * dk2;
@@ -403,9 +419,10 @@ namespace fsl
 						for (int x = 0; x < LineDisp; x++)
 						{
 							_x = (x + 1) / (LineDisp + 1.0);
-							for (int y = 0; y < LineDeep * 2 + 1; y++)
+							r = (r1 * k1 * (1 - _x) + r2 * k2 * _x);
+							for (int y = 0; y < 7; y++)
 							{
-								_y = (y - LineDeep) / (LineDeep * 30.0);
+								_y = disp[y] / r;
 								P = P1 * (1 - _x)*(1 - _y) + P2 * (_x)*(1 - _y) + C * (_x)* (_y)+D * (1 - _x)*(_y);
 								if (P.x < 0) { P.x = 0; }
 								if (P.y < 0) { P.y = 0; }
@@ -466,10 +483,107 @@ namespace fsl
 						k1bb = k1b; k2bb = k2b;
 					}
 				}
+
+				A = D + (A - D) * k1bb;
+				B = C + (B - C) * k2bb;
+
 				lists[u][i] = A;
 				lists[u][(i + 1 > 3) ? i + 1 - 4 : i] = B;
 				lists[u][(i + 2 > 3) ? i + 2 - 4 : i] = C;
 				lists[u][(i + 3 > 3) ? i + 3 - 4 : i] = D;
+			}
+		}
+	}
+
+	void GetBorderDisp()
+	{
+		double Krit, KritB, KritBB;
+		double Krite, KriteB, KriteBB;
+		double k, h, x0, a, kb, hb, x0b, ab, kbb, hbb, x0bb, abb, km, hm, x0m, am, kd, hd, x0d, ad;
+		Vector3 P1, P2, P, A, B, C, D;
+		int t;
+		double _x, _y, r;
+		for (int u = 0; u < framecount; u++)
+		{
+			while (listsborder.size() <= u)
+			{
+				double*** t = new double**[4]; for (int i = 0; i < 4; i++) { t[i] = new double*[20]; for (int j = 0; j < 20; j++) t[i][j] = new double[4];}
+				listsborder.push_back(t);
+			}
+			unsigned char buff[20][40];
+			for (int i = 0; i < 4; i++)
+			{
+				A = lists[u][i];
+				B = lists[u][(i + 1 > 3) ? i + 1 - 4 : i];
+				C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i];
+				D = lists[u][(i + 3 > 3) ? i + 3 - 4 : i];
+				double r1 = (A - D).GetLenght();
+				double r2 = (B - C).GetLenght();
+				for (int x = 0; x < 20; x++)
+				{
+					_x = (x + 1) / (20 + 1.0);
+					r = (r1 * (1 - _x) + r2 * _x);
+					for (int y = -20; y <= 20; y++)
+					{
+						_y = y / r;
+						P = P1 * (1 - _x)*(1 - _y) + P2 * (_x)*(1 - _y) + C * (_x)* (_y)+D * (1 - _x)*(_y);
+						if (P.x < 0) { P.x = 0; }
+						if (P.y < 0) { P.y = 0; }
+						if (P.y > immaxX) { P.y = immaxX - 1; }
+						if (P.x > immaxY) { P.x = immaxY - 1; }
+						t = blurred[u].Get((int)P.y, (int)P.x);
+						buff[x][y + 20] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
+					}
+					for (int E = 0; E < 10; E++)
+					{
+						km = 1; kd = 20; am = 1.6; ad = 1.55;
+						x0m = 0; x0d = 20; hm = 127; hd = 126;
+						for (int I = 0; I < 400; I++)
+						{
+							k = km + (2 - random) * kd;
+							x0 = x0m + (2 - random) * x0d;
+							a = am + (2 - random) * ad;
+							h = hm + (2 - random) * hd;
+
+							double Kr = 0;
+
+							for (int y = -20; y <= 20; y++)
+							{
+								t = abs(buff[x][y + 20] - h - k / (1 + exp((y - x0) / a)));
+								Kr += t * t;
+							}
+
+							double disp = 0.02;
+							if (Kr < KritB)
+							{
+								KritB = Kr;
+								kb = k; hb = h; ab = a; x0b = x0;
+							}
+							if (I % 2 == 1)
+							{
+
+								km += ((kb > km) ? kd * disp : -kd * disp);
+								kd *= (1 - disp);
+								hm += ((hb > hm) ? hd * disp : -hd * disp);
+								hd *= (1 - disp);
+								am += ((ab > am) ? ad * disp : -ad * disp);
+								ad *= (1 - disp);
+								x0m += ((x0b > x0m) ? x0d * disp : -x0d * disp);
+								x0d *= (1 - disp);
+							}
+						}
+						if (KritB < KritBB)
+						{
+							KritBB = KritB;
+							kbb = kb; hbb = hb; abb = ab; x0bb = x0b;
+						}
+					}
+
+					listsborder[u][i][x][0] = kbb;
+					listsborder[u][i][x][1] = x0bb;
+					listsborder[u][i][x][2] = abb;
+					listsborder[u][i][x][3] = hbb;
+				}				
 			}
 		}
 	}
@@ -597,18 +711,16 @@ namespace fsl
 		Y = Vector3(Y * R1, Y * R2, Y * R3);
 		Z = Vector3(Z * R1, Z * R2, Z * R3);
 
-		if (inworld.size < u + 1)
+		while (inworld.size <= u)
 		{
-			if (inworld.size == u)
-			{
-				Vector3* temp = new Vector3[4]{ WA, WB, WC, WD };
+
+				Vector3* temp = new Vector3[4];
 				inworld.push_back(temp);
-			}
 		}
-		else
-		{
-			inworld[u][0] = WA; inworld[u][1] = WB; inworld[u][2] = WC; inworld[u][3] = WD;
-		}
+
+		inworld[u][0] = WA; inworld[u][1] = WB; inworld[u][2] = WC; inworld[u][3] = WD;
+
+		focuss[u] = lamda;
 
 		cams[u][0] = O; cams[u][1] = X; cams[u][2] = Y; cams[u][3] = Z;
 
@@ -701,6 +813,83 @@ namespace fsl
 						for (int i = 0; i < 4; i++) KritBB[i] = KritB[i];
 						k1bb = k1b; k2bb = k2b;
 					}
+				}
+			}
+		}
+	}
+
+	void GetFoot()
+	{
+
+		double K = 43.26661530556787151743 / sqrt(immaxX * immaxX + immaxY * immaxY);
+		Vector3 P, A, B, C, D;
+		Vector2 Ko, Te, Li, V1, V2;
+		for (int u = 0; u < framecount; u++)
+		{
+			P = Vector3(-55, 0, 300);
+			P = Vector3(P * cams[u][1], P * cams[u][2], P * cams[u][3]); P = P / P.z * focuss[u] / K;
+			P.x -= immaxX / 2; P.y -= immaxY / 2;
+			Ko = Vector2(P.x, P.y);
+			P = Vector3(-75, 0, 0);
+			P = Vector3(P * cams[u][1], P * cams[u][2], P * cams[u][3]); P = P / P.z * focuss[u] / K;
+			P.x -= immaxX / 2; P.y -= immaxY / 2;
+			Li = Vector2(P.x, P.y);
+			Li = Li - Ko;
+			Vector2* line = new Vector2[200], *lineforce = new Vector2[200], *linespeed = new Vector2[200];
+			for (int i = 0; i < 4; i++)
+			{
+				A = lists[u][i];
+				B = lists[u][(i + 1 > 3) ? i + 1 - 4 : i];
+				C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i];
+				D = lists[u][(i + 3 > 3) ? i + 3 - 4 : i];
+				for (int k = 0; k < 50; k++)
+					line[i * 50 + k] = Vector2(A.x * (1 - k / 50.0) + B.x * (k / 50.0), A.y * (1 - k / 50.0) + B.y * (k / 50.0));
+			}
+			Te = Ko - line[0];
+			double min = Te * Te, t, r;
+			int freez = 0;
+			for (int i = 1; i < 200; i++) { Te = Ko - line[i]; t = Te * Te; if (t < min) { min = t; freez = i; } }
+			while (Ko.x < 0 || Ko.y < 0 || Ko.x >= immaxX || Ko.y >= immaxY) // Проверка на вне кадра
+			{
+				if (Ko.x < 0)
+				{
+					Li = Li / Li.x;
+					Ko = Ko + Li * Ko.x;
+				}
+				if (Ko.y < 0)
+				{
+					Li = Li / Li.y;
+					Ko = Ko + Li * Ko.y;
+				}
+				if (Ko.x >= immaxX)
+				{
+					Li = Li / Li.x;
+					Ko = Ko + Li * (immaxX - Ko.x - 1);
+				}
+				if (Ko.y >= immaxY)
+				{
+					Li = Li / Li.y;
+					Ko = Ko + Li * (immaxY - Ko.y - 1);
+				}
+			}
+			line[freez] = Ko;
+			double c = 150, d = 30, dt = 0.01, rmids = ((A - B).GetLenght() + (B - C).GetLenght() + (C - D).GetLenght() + (D - A).GetLenght()) / 150.0;
+
+
+			for (int time = 0; time < 1000; time++)
+			{
+				double  rmid = 0.0156;
+
+				for (int i = 1; i < 200; i++) { lineforce[i].x = 0; lineforce[i].y = 0; }
+
+				for (int i1 = 0, i2 = 1; i1 < 200; i1++, i2 = (i2 == 200 - 1) ? 0 : i2 + 1)
+				{
+					V1 = line[i1] - line[i2];
+					r = V1.GetLenght();
+					t = -c * (r - rmid) / r;
+					V2 = V1 * t - (linespeed[i1] - linespeed[i2]) * d;
+					lineforce[i1] = lineforce[i1] + V2;
+					lineforce[i2] = lineforce[i2] - V2;
 				}
 			}
 		}
