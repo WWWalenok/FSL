@@ -6,6 +6,8 @@
 #include <thread>
 #include <cmath>
 #include "Vectors.h"
+//#include 
+
 
 #define uchar unsigned char
 
@@ -130,13 +132,18 @@ namespace fsl
 
 	};
 
+	struct PhisicPoint
+	{
+		Vector2 loc, v, dv;
+	};
+
 #define PI 3.141592653589793
 #define VoxelX 400
 #define VoxelY 256
 #define VoxelZ 256
 #define VoxelS 1.0
-#define LineDisp 16
-#define LineDeep 3
+#define pointsDisp 16
+#define pointsDeep 3
 
 #define random rand() / (double)RAND_MAX
 
@@ -145,7 +152,7 @@ namespace fsl
 	double K, devia[8]{ 0,0,0,0,0,0,0,0 };
 	Voxel voxel;
 
-	std::vector<Img> imgs, blurred, buffer;
+	std::vector<Img> imgs, blurred, counter;
 
 	int framecount, immaxX, immaxY, *usedCamera, *oreint;
 
@@ -156,6 +163,9 @@ namespace fsl
 
 	Vector3 *sphNoga;
 	double *sphNogaR;
+
+	std::vector<Vector3*> males, females;
+	std::vector<int> malesizes, femalesizes;
 
 	void GetCamPos(int);
 
@@ -179,13 +189,9 @@ namespace fsl
 
 	void Out();
 
-	void MainFunc();
-
-	void SetVoxelPoint(int x, int y, int z, bool val);
-
-	bool GetVoxelPoint(int x, int y, int z);
-
 	bool isInCounter(Vector3, int);
+
+	void UpdateOreint();
 
 	void ToCam(Vector3 &base, int camnum)
 	{
@@ -299,7 +305,7 @@ namespace fsl
 				for (int i = 0; i < 4; i++) KriteB[i] = -1e20;
 				for (int I = 0; I < 1000; I++)
 				{
-					unsigned char buff[LineDisp][LineDeep * 2 + 1];
+					unsigned char buff[pointsDisp][pointsDeep * 2 + 1];
 					Vector3 P, A, B, C, D;
 					double _x, _y;
 					for (int i = 0; i < 2; i++)
@@ -330,43 +336,43 @@ namespace fsl
 						B = list[(i + 1 > 3) ? i + 1 - 4 : i];
 						C = list[(i + 2 > 3) ? i + 2 - 4 : i];
 						D = list[(i + 3 > 3) ? i + 3 - 4 : i];
-						for (int x = 0; x < LineDisp; x++)
+						for (int x = 0; x < pointsDisp; x++)
 						{
-							_x = (x + 1) / (LineDisp + 1.0);
-							for (int y = 0; y < LineDeep * 2 + 1; y++)
+							_x = (x + 1) / (pointsDisp + 1.0);
+							for (int y = 0; y < pointsDeep * 2 + 1; y++)
 							{
-								_y = (y - LineDeep) / (LineDeep * 30.0);
+								_y = (y - pointsDeep) / (pointsDeep * 30.0);
 								P = A * (1 - _x)*(1 - _y) + B * (_x)*(1 - _y) + C * (_x)*(_y)+D * (1 - _x)*(_y);
 								if (P.x < 0) { P.x = 0; }
 								if (P.y < 0) { P.y = 0; }
 								if (P.y > immaxX) { P.y = immaxX - 1; }
 								if (P.x > immaxY) { P.x = immaxY - 1; }
-								t = blurred[u].Get((int)P.y, (int)P.x);
+								t = blurred[u].Get((int)P.x, (int)P.y);
 								buff[x][y] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 							}
 						}
 						Krit[i] = 0; Krite[i] = 0;
-						for (int x = 0; x < LineDisp; x++)
+						for (int x = 0; x < pointsDisp; x++)
 						{
 							r = ((buff[x][4] + buff[x][5] + buff[x][6]) / 3.0 - (buff[x][0] + buff[x][1] + buff[x][2]) / 3.0);
 							if (r > tr3)
 							{
 								Krit[i] = Krit[i] + w3;
-								if (abs(i - LineDisp / 2) >= (LineDisp*0.25))
+								if (abs(i - pointsDisp / 2) >= (pointsDisp*0.25))
 									Krite[i] = Krite[i] + w3;
 							}
 							r = ((buff[x][4] + buff[x][5]) / 2.0 - (buff[x][1] + buff[x][2]) / 2.0);
 							if (r > tr2)
 							{
 								Krit[i] = Krit[i] + w2;
-								if (abs(i - LineDisp / 2) >= (LineDisp*0.25))
+								if (abs(i - pointsDisp / 2) >= (pointsDisp*0.25))
 									Krite[i] = Krite[i] + w2;
 							}
 							r = ((buff[x][4]) - (buff[x][2]));
 							if (r > tr)
 							{
 								Krit[i] = Krit[i] + w1;
-								if (abs(i - LineDisp / 2) >= (LineDisp*0.25))
+								if (abs(i - pointsDisp / 2) >= (pointsDisp*0.25))
 									Krite[i] = Krite[i] + w1;
 							}
 						}
@@ -489,9 +495,9 @@ namespace fsl
 								P = A * (1 - _x)*(1 - _y) + B * (_x)*(1 - _y) + C * (_x)* (_y)+D * (1 - _x)*(_y);
 								if (P.x < 0) { P.x = 0; }
 								if (P.y < 0) { P.y = 0; }
-								if (P.y > immaxX) { P.y = immaxX - 1; }
-								if (P.x > immaxY) { P.x = immaxY - 1; }
-								t = blurred[u].Get((int)P.y, (int)P.x);
+								if (P.x > immaxX) { P.y = immaxX - 1; }
+								if (P.y > immaxY) { P.x = immaxY - 1; }
+								t = blurred[u].Get((int)P.x, (int)P.y);
 								buff[x][y][2] = P.x;
 								buff[x][y][3] = P.y;
 								buff[x][y][0] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
@@ -592,14 +598,14 @@ namespace fsl
 					for (int I = 0; I < 400; I++)
 					{
 						double val = (1 - 0.5 * I / (200.0 + I));
-						unsigned char buff[LineDisp][7];
+						unsigned char buff[pointsDisp][7];
 						k1 = mk1 + (2 - random) * dk1;
 						k2 = mk2 + (2 - random) * dk2;
 						P1 = D + (A - D) * k1;
 						P2 = C + (B - C) * k2;
-						for (int x = 0; x < LineDisp; x++)
+						for (int x = 0; x < pointsDisp; x++)
 						{
-							_x = (x + 1) / (LineDisp + 1.0);
+							_x = (x + 1) / (pointsDisp + 1.0);
 							r = (r1 * k1 * (1 - _x) + r2 * k2 * _x);
 							for (int y = 0; y < 7; y++)
 							{
@@ -607,34 +613,34 @@ namespace fsl
 								P = P1 * (1 - _x)*(1 - _y) + P2 * (_x)*(1 - _y) + C * (_x)* (_y)+D * (1 - _x)*(_y);
 								if (P.x < 0) { P.x = 0; }
 								if (P.y < 0) { P.y = 0; }
-								if (P.y > immaxX) { P.y = immaxX - 1; }
-								if (P.x > immaxY) { P.x = immaxY - 1; }
-								t = blurred[u].Get((int)P.y, (int)P.x);
+								if (P.x > immaxX) { P.y = immaxX - 1; }
+								if (P.y > immaxY) { P.x = immaxY - 1; }
+								t = blurred[u].Get((int)P.x, (int)P.y);
 								buff[x][y] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 							}
 						}
 						Krit[i] = 0; Krite[i] = 0;
-						for (int x = 0; x < LineDisp; x++)
+						for (int x = 0; x < pointsDisp; x++)
 						{
 							r = ((buff[x][4] + buff[x][5] + buff[x][6]) / 3.0 - (buff[x][0] + buff[x][1] + buff[x][2]) / 3.0);
 							if (r > tr3)
 							{
 								Krit[i] = Krit[i] + w3;
-								if (abs(i - LineDisp / 2) >= (LineDisp*0.25))
+								if (abs(i - pointsDisp / 2) >= (pointsDisp*0.25))
 									Krite[i] = Krite[i] + w3;
 							}
 							r = ((buff[x][4] + buff[x][5]) / 2.0 - (buff[x][1] + buff[x][2]) / 2.0);
 							if (r > tr2)
 							{
 								Krit[i] = Krit[i] + w2;
-								if (abs(i - LineDisp / 2) >= (LineDisp*0.25))
+								if (abs(i - pointsDisp / 2) >= (pointsDisp*0.25))
 									Krite[i] = Krite[i] + w2;
 							}
 							r = ((buff[x][4]) - (buff[x][2]));
 							if (r > tr)
 							{
 								Krit[i] = Krit[i] + w1;
-								if (abs(i - LineDisp / 2) >= (LineDisp*0.25))
+								if (abs(i - pointsDisp / 2) >= (pointsDisp*0.25))
 									Krite[i] = Krite[i] + w1;
 							}
 						}
@@ -674,7 +680,6 @@ namespace fsl
 		}
 	}
 
-	// Заметка - узнать какого твориться в куске (4800 .. 5023)
 	void GetBorderDisp_new()
 	{
 		double Krit, KritB, KritBB;
@@ -709,9 +714,9 @@ namespace fsl
 						P = A * (1 - _x)*(1 - _y) + B * (_x)*(1 - _y) + C * (_x)* (_y)+D * (1 - _x)*(_y);
 						if (P.x < 0) { P.x = 0; }
 						if (P.y < 0) { P.y = 0; }
-						if (P.y > immaxX) { P.y = immaxX - 1; }
-						if (P.x > immaxY) { P.x = immaxY - 1; }
-						t = blurred[u].Get((int)P.y, (int)P.x);
+						if (P.x > immaxX) { P.y = immaxX - 1; }
+						if (P.y > immaxY) { P.x = immaxY - 1; }
+						t = blurred[u].Get((int)P.x, (int)P.y);
 						buff[x][y + 20] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 					}
 					KritBB = 1e20;
@@ -840,9 +845,9 @@ namespace fsl
 						P = A * (1 - _x)*(1 - _y) + B * (_x)*(1 - _y) + C * (_x)* (_y)+D * (1 - _x)*(_y);
 						if (P.x < 0) { P.x = 0; }
 						if (P.y < 0) { P.y = 0; }
-						if (P.y > immaxX) { P.y = immaxX - 1; }
-						if (P.x > immaxY) { P.x = immaxY - 1; }
-						t = blurred[u].Get((int)P.y, (int)P.x);
+						if (P.y > immaxY - 1) { P.y = immaxY - 1; }
+						if (P.x > immaxX - 1) { P.x = immaxX - 1; }
+						t = blurred[u].Get((int)P.x, (int)P.y);
 						buff[x][y + 30][0] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 						buff[x][y + 30][1] = (int)P.x;
 						buff[x][y + 30][2] = (int)P.y;
@@ -1081,7 +1086,7 @@ namespace fsl
 			Vector3 *list = new Vector3[4];
 			Vector3 d[2];
 			Vector3 s[2], b[2], bb[2], m[2]; // select, best, bestbest, median
-			double f, bf, bbf, a, ba, bba, df, mf, da, ma; // focus, angel
+			double f, bf, bbf, a, ba, bba, df, mf, da, ma, r; // focus, angel
 
 			Vector3 se[2]{ Vector3(120, 120, 120), Vector3(60,60,0) }, P;
 			double fe = 20, ae = PI * 0.5 * 0.6;
@@ -1135,7 +1140,7 @@ namespace fsl
 					double koof = 0, tf;
 					for (int W = 0; W < 280; W++)
 					{
-						koof = 0.333 * (280 - k) / 280.0;
+						koof = 0.333 * (280 - W) / 280.0;
 						for (int i = 0; i < 7; i++)spu[0] = 0;
 						switch (W % 14)
 						{
@@ -1214,7 +1219,6 @@ namespace fsl
 
 	void GetFoot()
 	{
-		double K = 43.26661530556787151743 / sqrt(immaxX * immaxX + immaxY * immaxY);
 		Vector3 P, A, B, C, D;
 		Vector2 Ko, Te, Li, V1, V2, X, Y;
 		for (int u = 0; u < framecount; u++)
@@ -1228,7 +1232,7 @@ namespace fsl
 			P.x -= immaxX / 2; P.y -= immaxY / 2;
 			Li = Vector2(P.x, P.y);
 			Li = Li - Ko;
-			Vector2* line = new Vector2[200], *lineforce = new Vector2[200], *linespeed = new Vector2[200];
+			PhisicPoint* points = new PhisicPoint[400];
 			for (int i = 0; i < 4; i++)
 			{
 				A = lists[u][i];
@@ -1236,12 +1240,12 @@ namespace fsl
 				C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i];
 				D = lists[u][(i + 3 > 3) ? i + 3 - 4 : i];
 				for (int k = 0; k < 50; k++)
-					line[i * 50 + k] = Vector2(A.x * (1 - k / 50.0) + B.x * (k / 50.0), A.y * (1 - k / 50.0) + B.y * (k / 50.0));
+					points[i * 50 + k].loc = Vector2(A.x * (1 - k / 50.0) + B.x * (k / 50.0), A.y * (1 - k / 50.0) + B.y * (k / 50.0));
 			}
-			Te = Ko - line[0];
+			Te = Ko - points[0].loc;
 			double min = Te * Te, t, r;
 			int freez = 0;
-			for (int i = 1; i < 200; i++) { Te = Ko - line[i]; t = Te * Te; if (t < min) { min = t; freez = i; } }
+			for (int i = 1; i < 200; i++) { Te = Ko - points[i].loc; t = Te * Te; if (t < min) { min = t; freez = i; } }
 			while (Ko.x < 0 || Ko.y < 0 || Ko.x >= immaxX || Ko.y >= immaxY) // Проверка на вне кадра
 			{
 				if (Ko.x < 0)
@@ -1265,7 +1269,7 @@ namespace fsl
 					Ko = Ko + Li * (immaxY - Ko.y - 1);
 				}
 			}
-			line[freez] = Ko;
+			points[freez].loc = Ko;
 			double c = 150, d = 30, dt = 0.01, g = 50, rmids = ((A - B).GetLenght() + (B - C).GetLenght() + (C - D).GetLenght() + (D - A).GetLenght()) / 150.0;
 			double ots[4]{ 0,5,13,25 }, val, w1 = 0.6, w2 = 0.25, w3 = 0.15;
 			unsigned char buff[7];
@@ -1273,40 +1277,217 @@ namespace fsl
 			{
 				val = (1 - 0.5 * time / (1250.0 + time));
 				double  rmid = rmids * val;
-				for (int i = 1; i < 200; i++) { lineforce[i].x = 0; lineforce[i].y = 0; }
+				for (int i = 1; i < 200; i++) { points[i].dv.x = 0; points[i].dv.y = 0; }
 				for (int i0 = 200 - 1, i1 = 0, i2 = 1; i1 < 200; i1++, i2 = (i2 == 200 - 1) ? 0 : i2 + 1, i0 = (i0 == 200 - 1) ? 0 : i0 + 1)
 				{
-					V1 = line[i1] - line[i2];
+					V1 = points[i1].loc - points[i2].loc;
 					r = V1.GetLenght();
 					t = -c * (r - rmid) / r;
-					V2 = V1 * t - (linespeed[i1] - linespeed[i2]) * d;
-					lineforce[i1] = lineforce[i1] + V2;
-					lineforce[i2] = lineforce[i2] - V2;
+					V2 = V1 * t - (points[i1].v - points[i2].v) * d;
+					points[i1].dv = points[i1].dv + V2;
+					points[i2].dv = points[i2].dv - V2;
 
-					V2 = (line[i0] + line[i2]) * 0.5;
-					Y = line[i2] - line[i0]; Y.SetLenght(1);
+					V2 = (points[i0].loc + points[i2].loc) * 0.5;
+					Y = points[i2].loc - points[i0].loc; Y.SetLenght(1);
 					X = (!Y) * -1;
 					for (int i = -3; i < 4; i++)
 					{
-						V1 = line[i1] + X * ots[abs(i)] * val;
-						t = imgs[u].Get((int)V1.y, (int)V1.x);
+						V1 = points[i1].loc + X * ots[abs(i)] * val;
+						t = imgs[u].Get((int)V1.x, (int)V1.y);
 						buff[i + 3] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 					}
 					double k = 1;
-					if (((line[i2].x - line[i0].x)*(line[i1].y - line[i0].y)
-						- (line[i2].y - line[i0].y)*(line[i1].x - line[i0].x)) > 0) k = -1; else k = 1;
+					if (((points[i2].loc.x - points[i0].loc.x)*(points[i1].loc.y - points[i0].loc.y)
+						- (points[i2].loc.y - points[i0].loc.y)*(points[i1].loc.x - points[i0].loc.x)) > 0) k = -1; else k = 1;
 					double fi = g * (w1 * (buff[2] - 2 * buff[3] + buff[4]) + w2 * (buff[1] - 2 * buff[3] + buff[5]) + w3 * (buff[0] - 2 * buff[3] + buff[6]))*k;
 
-					lineforce[i1] = lineforce[i1] + X * fi + (linespeed[i0] - linespeed[i1] * 2 + linespeed[i2]) * 20;
+					points[i1].dv = points[i1].dv + X * fi + (points[i0].v - points[i1].v * 2 + points[i2].v) * 20;
 				}
 				double ddt = dt * dt * 0.5;
 				for (int i1 = 0; i1 < 200; i1++) if (i1 != freez)
 				{
-					line[i1] = line[i1] + linespeed[i1] * dt + lineforce[i1] * ddt;
-					linespeed[i1] = linespeed[i1] + lineforce[i1] * dt;
+					points[i1].loc = points[i1].loc + points[i1].v * dt + points[i1].dv * ddt;
+					points[i1].v = points[i1].v + points[i1].dv * dt;
+				}
+			}
+			freez *= 2;
+			PhisicPoint T = points[0];
+			for (int i1 = 200 - 1; i1 >= 0; i1--)
+			{
+				points[i1 * 2] = points[i1];
+				points[i1 * 2 + 1].loc = (T.loc + points[i1 * 2].loc) * 0.5;
+				points[i1 * 2].v.x = 0; points[i1 * 2].v.y = 0; points[i1 * 2].dv.x = 0; points[i1 * 2].dv.x = 0;
+				points[i1 * 2 + 1].v.x = 0; points[i1 * 2 + 1].v.y = 0; points[i1 * 2 + 1].dv.x = 0; points[i1 * 2 + 1].dv.x = 0;
+			}
+			double rad[61][3];
+			for (int i0 = 400 - 1, i1 = 0, i2 = 1; i1 < 400; i1++, i2 = (i2 == 400 - 1) ? 0 : i2 + 1, i0 = (i0 == 400 - 1) ? 0 : i0 + 1)
+			{
+				bool isina4 = true;
+				for (int i = 0; i < 4; i++)
+				{
+					A = lists[u][i];
+					B = lists[u][(i + 1 > 3) ? i + 1 - 4 : i];
+					C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i];
+					double dx = B.y - A.y;
+					double dy = A.x - B.x;
+					double Q = A.x*dx + A.y*dy;
+					if ((points[i1].loc.x*dx + points[i1].loc.y*dy + Q) * (C.x*dx + C.y*dy + Q) < 0) isina4 = false;
+				}
+				if (!isina4 || i1 == freez) continue;
+				Y = points[i2].loc - points[i0].loc; Y.SetLenght(1);
+				X = !Y; 
+				for (int o, int i = -30; i <= 30; i++)
+				{
+					V1 = points[i1].loc + X * (i * 0.5);
+					if (V1.x < 1) { V1.x = 1; }
+					if (V1.y < 1) { V1.y = 1; }
+					if (V1.y > immaxY - 2) { V1.y = immaxY - 2; }
+					if (V1.x > immaxX - 2) { V1.x = immaxX - 2; }
+					t = 0;
+					for (int x = -1; x < 2; x++)for (int y = -1; y < 2; y++)
+					{
+						o = abs(x) + abs(y);
+						t += blurred[u].Get((int)V1.x, (int)V1.y)*((y == 0) ? 0.2 : (y == 1) ? 0.12 : 0.08);
+					}
+					rad[i + 30][0] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
+					rad[i + 30][1] = (int)P.x;
+					rad[i + 30][2] = (int)P.y;
+				}
+				double Krit, KritB, KritBB;
+				double k, h, x0, a, kb, hb, x0b, ab, kbb, hbb, x0bb, abb, km, hm, x0m, am, kd, hd, x0d, ad;
+				KritBB = 1e20;
+				for (int E = 0; E < 10; E++)
+				{
+					km = 0; kd = 50; am = 1.6; ad = 1.55;
+					x0m = 0; x0d = 20; hm = 127; hd = 126;
+					KritB = 1e20;
+					for (int I = 0; I < 400; I++)
+					{
+						k = km + (2 - random) * kd;
+						x0 = x0m + (2 - random) * x0d;
+						a = am + (2 - random) * ad;
+						h = hm + (2 - random) * hd;
+						double r;
+						double Kr = 0;
+						for (int i = -30; i <= 30; i++)
+						{
+
+							if (k * (i - x0) > 0)
+								r = 0.75 + 0.25 * exp(-(i - x0)*(i - x0) * 0.25);
+							else
+								r = 0.22 + 0.78 * exp(-(i - x0)*(i - x0) * 0.25);
+
+							t = abs(rad[i + 30][0] - h - k / (1 + exp(-(i - x0) / a)));
+							Kr += r * t * t;
+						}
+
+						double disp = 0.02;
+						if (Kr < KritB)
+						{
+							KritB = Kr;
+							kb = k; hb = h; ab = a; x0b = x0;
+						}
+					}
+					if (KritB < KritBB)
+					{
+						KritBB = KritB;
+						kbb = kb; hbb = hb; abb = ab; x0bb = x0b;
+					}
+				}
+				points[i1].loc.x = rad[(int)x0bb][1];
+				points[i1].loc.y = rad[(int)x0bb][2];
+			}
+			while (counter.size() < u - 1)
+			{
+				counter.push_back(Img(immaxX, immaxY));
+			}
+			for (int x = 0; x < immaxX; x++) for (int y = 0; y < immaxY; y++)
+			{
+				counter[u].Set(x, y, 0);
+			}
+			P = Vector3(-75, 0, 0);
+			P = Vector3(P * cams[u][1], P * cams[u][2], P * cams[u][3]); P = P / P.z * focuss[u] / K;
+			P.x -= immaxX / 2; P.y -= immaxY / 2;
+			Li = Vector2(P.x, P.y);
+			Li = (Li + Ko) * 0.5;
+			for (int i1 = 0, i2 = 1; i1 < 400; i1++, i2 = (i2 == 400 - 1) ? 0 : i2 + 1)
+			{
+				V1 = points[i2].loc - points[i1].loc;
+				r = abs(V1.x);
+				V1 = V1 / r;
+				V2 = points[i1].loc;
+				r = (int)r + 1;
+				for (int i = 0; i <= r; i++)
+				{
+					counter[u].Set((int)V2.x, (int)V2.y, 255);
+				}
+			}
+			counter[u].Set((int)Li.x, (int)Li.y, 100);
+			int count = 1;
+			while(count != 0)
+			{
+				count = 0;
+				for (int x = 1; x < immaxX - 1; x++) for (int y = 1; y < immaxY - 1; y++)
+				{
+					if (counter[u].Get(x, y) == 0)
+					{
+						     if (counter[u].Get(x + 1, y) == 100) counter[u].Set(x, y, 100);
+						else if (counter[u].Get(x - 1, y) == 100) counter[u].Set(x, y, 100);
+						else if (counter[u].Get(x, y + 1) == 100) counter[u].Set(x, y, 100);
+						else if (counter[u].Get(x, y - 1) == 100) counter[u].Set(x, y, 100);
+						else if (counter[u].Get(x + 1, y) == 150) counter[u].Set(x, y, 100);
+						else if (counter[u].Get(x - 1, y) == 150) counter[u].Set(x, y, 100);
+						else if (counter[u].Get(x, y + 1) == 150) counter[u].Set(x, y, 100);
+						else if (counter[u].Get(x, y - 1) == 150) counter[u].Set(x, y, 100);
+						if (counter[u].Get(x, y) == 100)count++;
+					}
+					if (counter[u].Get(x, y) == 100)
+					{
+						count++;
+						counter[u].Set(x, y, 150);
+					}
+					if (counter[u].Get(x, y) == 150)
+					{
+						count++;
+						counter[u].Set(x, y, 255);
+					}
+				}
+				if (count != 0)
+				{
+					count = 0;
+					for (int x = immaxX - 2; x > 0; x--) for (int y = immaxY - 2; y > 0; y--)
+					{
+						if (counter[u].Get(x, y) == 0)
+						{
+							if (counter[u].Get(x + 1, y) == 100) counter[u].Set(x, y, 100);
+							else if (counter[u].Get(x - 1, y) == 100) counter[u].Set(x, y, 100);
+							else if (counter[u].Get(x, y + 1) == 100) counter[u].Set(x, y, 100);
+							else if (counter[u].Get(x, y - 1) == 100) counter[u].Set(x, y, 100);
+							else if (counter[u].Get(x + 1, y) == 150) counter[u].Set(x, y, 100);
+							else if (counter[u].Get(x - 1, y) == 150) counter[u].Set(x, y, 100);
+							else if (counter[u].Get(x, y + 1) == 150) counter[u].Set(x, y, 100);
+							else if (counter[u].Get(x, y - 1) == 150) counter[u].Set(x, y, 100);
+							if (counter[u].Get(x, y) == 100)count++;
+						}
+						if (counter[u].Get(x, y) == 100)
+						{
+							count++;
+							counter[u].Set(x, y, 150);
+						}
+						if (counter[u].Get(x, y) == 150)
+						{
+							count++;
+							counter[u].Set(x, y, 255);
+						}
+					}
 				}
 			}
 		}
+	}
+
+	bool isInCounter(Vector3 P, int u)
+	{
+		return counter[u].Get((int)P.x, (int)P.y) > 0;
 	}
 
 	void GetFirstVoxel()
@@ -1475,13 +1656,15 @@ namespace fsl
 		usedCamera = new int[framecount]; for (int i = 0; i < framecount; i++) usedCamera[i] = variant[best][i];
 	}
 
+	// Проходим по всем точкам шаблона, строим перпендикулярный ряд for i: = 1 to 30 do что за 30?!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 	void GetBestVoxel()
 	{
 		// Проходим по всем точкам шаблона, строим перпендикулярный ряд for i: = 1 to 30 do что за 30?
 
 	}
 
-	void MainFunc(int inframecount, unsigned char ***inframes, int frameX, int frameY)
+	void InitFrame(int inframecount, unsigned char ***inframes, int frameX, int frameY)
 	{
 		immaxX = frameX;
 		immaxY = frameY;
@@ -1499,6 +1682,18 @@ namespace fsl
 			imgs.push_back(Img(frameX, frameY, inframes[f]));
 		}
 
+	}
+
+	void InitEtalon(std::vector<Vector3*> _male, std::vector<int> _malesizes, std::vector<Vector3*> _female, std::vector<int> _femalesizes)
+	{
+		males = _male;
+		females = _female;
+		malesizes = _malesizes;
+		femalesizes = _femalesizes;
+	}
+
+	void Run()
+	{
 		Prepare();
 
 		GetFirsCamPos();
@@ -1521,12 +1716,11 @@ namespace fsl
 
 		Out();
 	}
-
 }
 
 using namespace fsl;
 
 int main()
 {
-
+	
 }
