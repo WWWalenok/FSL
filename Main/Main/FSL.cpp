@@ -3,6 +3,8 @@
 
 		//GetBestVoxel: Проходим по всем точкам шаблона, строим перпендикулярный ряд for i: = 1 to 30 do что за 30?
 
+#define for3(k) for (int i0 = k - 1, i1 = 0, i2 = 1; i1 < k; i1++, i2 = (i2 == k - 1) ? 0 : i2 + 1, i0 = (i0 == k - 1) ? 0 : i0 + 1)
+
 namespace fsl
 {
 #pragma region Local / Global Vars
@@ -1446,11 +1448,98 @@ namespace fsl
 		double *sys = new double[ch.size()];
 		double *fis = new double[ch.size()];
 
-		for (int n = 0; n < ch.size(); n++)
+		Vector2 chablon[30][7];
+
+		for (int n = 0; n < ch.size(); n++)			// поиск критериев
 		{
-			// поиск критериев
+			// создание шаблона
+			double maxX = -1e20, maxY = 1e20, minX = 1e20, minY = -1e20;
+			for (int i = 0; i < chsizes[n]; i++)
+			{
+				if (ch[n][i].z < 30)
+				{
+					if (ch[n][i].x < minX) minX = ch[n][i].x;
+					if (ch[n][i].x > maxX) maxX = ch[n][i].x;
+					if (ch[n][i].y < minY) minY = ch[n][i].y;
+					if (ch[n][i].y > maxY) maxY = ch[n][i].y;
+				}
+			}
 
+			if (maxX - minX > maxY - minY)
+			{
+				chablon[0][3].x = maxX; chablon[0][3].y = maxY;
+				for (int i = 1; i < 8; i++) { chablon[i][3].x = maxX - i * (maxX - minX) / 7.0; chablon[i][3].y = maxY; }
+				chablon[8][3].x = minX; chablon[8][3].y = maxY;
+				for (int i = 9; i < 15; i++) { chablon[i][3].x = minX; chablon[i][3].y = maxY - i * (maxY - minY) / 6.0; }
+				chablon[15][3].x = minX; chablon[15][3].y = minY;
+				for (int i = 16; i < 23; i++) { chablon[i][3].x = minX - i * (minX - maxX) / 7.0; chablon[i][3].y = minY; }
+				chablon[23][3].x = maxX; chablon[23][3].y = minY;
+				for (int i = 24; i < 30; i++) { chablon[i][3].x = maxX; chablon[i][3].y = minY - i * (minY - maxY) / 6.0; }
+			}
+			else
+			{
+				chablon[0][3].x = maxX; chablon[0][3].y = maxY;
+				for (int i = 1; i < 8; i++) { chablon[i][3].x = maxX - i * (maxX - minX) / 6.0; chablon[i][3].y = maxY; }
+				chablon[7][3].x = minX; chablon[8][3].y = maxY;
+				for (int i = 8; i < 15; i++) { chablon[i][3].x = minX; chablon[i][3].y = maxY - i * (maxY - minY) / 7.0; }
+				chablon[15][3].x = minX; chablon[15][3].y = minY;
+				for (int i = 16; i < 22; i++) { chablon[i][3].x = minX - i * (minX - maxX) / 6.0; chablon[i][3].y = minY; }
+				chablon[22][3].x = maxX; chablon[23][3].y = minY;
+				for (int i = 24; i < 30; i++) { chablon[i][3].x = maxX; chablon[i][3].y = minY - i * (minY - maxY) / 7.0; }
+			}
 
+			for (int k = 0; k < 30; k++)
+			{
+				double minr = 1e30, temp = 0;
+				int minnum = 0;
+				for (int i = 0; i < chsizes[n]; i++)
+				{
+					if (ch[n][i].z < 30)
+					{
+						temp = (ch[n][i].x - chablon[k][3].x) * (ch[n][i].x - chablon[k][3].x) + (ch[n][i].y - chablon[k][3].y) * (ch[n][i].y - chablon[k][3].y);
+						if (temp < minr) { minr = temp; minnum = i;}
+					}
+				}
+				chablon[k][3].x = ch[n][minnum].x;
+				chablon[k][3].y = ch[n][minnum].y;
+			}
+
+			//for (int i0 = 30 - 1, i1 = 0, i2 = 1; i1 < 30; i1++, i2 = (i2 == 30 - 1) ? 0 : i2 + 1, i0 = (i0 == 30 - 1) ? 0 : i0 + 1)
+			for3(30)
+			{
+				Vector2 Y = chablon[i2][3] - chablon[i0][3]; Y.SetLenght(1);
+				double t = Y * chablon[i1][3];
+				Vector2 X(Y.y, -(t + Y.x)); X.SetLenght(1);
+				if (X * Y < 0) X = X * -1;
+				for (int i = -3; i <= 3; i++) if(i != 0)
+					chablon[i1][i] = chablon[i1][0] + X * 2.0 * i;
+			}
+			//double **buffer = new double*[100];
+			//for (int i = 0; i < 100; i++)
+			//{
+			//	buffer[i] = new double[100];
+			//}
+			//double x, y, dx = maxX - minX, dy = maxY - minY; dx /= 100.0; dy /= 100.0;
+			//for (int i = 0; i < 100; i++)
+			//{
+			//	for (int j = 0; j < 100; j++)
+			//	{
+			//		buffer[i][j] = 0;
+			//		for (int i = 0; i < chsizes[n]; i++) if (ch[n][i].z < 30)
+			//		{
+			//			x = (ch[n][i].x - minX) / dx - 0.5; // -0.5 : Смещение к центру сегмента
+			//			y = (ch[n][i].y - minY) / dy - 0.5;
+			//			buffer[i][j] += 1.0 / (1.0 + (x - i) * (x - i) + (y - j) * (y - j));
+			//		}
+			//	}
+			//}
+			//for (int i = 0; i < 100; i++)
+			//{
+			//	delete[]buffer[i];
+			//}
+			//delete[]buffer;
+
+			// конец создани шаблона
 		}
 
 
