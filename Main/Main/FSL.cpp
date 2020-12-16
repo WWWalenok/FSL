@@ -30,6 +30,8 @@ namespace fsl
 
 #pragma endregion
 
+#pragma region Support function
+
 	void ToCam(Vector3 &base, int camnum)
 	{
 		base.x -= cams[camnum][0].x; base.y -= cams[camnum][0].y; base.z -= cams[camnum][0].z;
@@ -38,78 +40,14 @@ namespace fsl
 		base.x -= immaxX / 2; base.y -= immaxY / 2;
 	}
 
-	void Prepare()
+	bool isInCounter(Vector3 P, int u)
 	{
-		K = 43.26661530556787151743 / sqrt(immaxX * immaxX + immaxY * immaxY);
-		voxel = Voxel(VoxelX, VoxelY, VoxelZ);
-
-		sphNoga = new Vector3[80];
-		double *tx = new double[80]{ -31.586, -54.338, -79.422, -87.392, 20.206, -4.095, -82.568, -81.81, -78.205, -71.239, 12.979, -69.774, 63.242, 52.594, -40.76, -23.899, -101.968, -100.973, 97.261, -53.009, -57.968, -53.987, -50.643, 80.556, 28.291, -37.864, 68.973, 87.525, 50.309, -28.211, -6.579, -93.309, 75.315, -48.179, -68.199, -44.203, 0.674, -25.696, 11.526, -21.359, -38.259, 35.423, 112.634, 40.347, 44.522, -51.104, -49.152, 42.484, 66.355, -34.237, 91.088, 21.634, -54.127, -94.514, -24.88, 108.639, -59.463, -57.292, -11.901, 63.788, 97.003, -33.328, 46.895, 77.757, 39.134, -111.784, -62.769, 54.227, -19.469, -18.397, 3.246, -59.022, 34.878, -63.495, -40.069, -9.402, 81.451, 9.036, -108.271, -5.61 };
-		double *ty = new double[80]{ 14.572, 13.641, 3.318, 8.299, 15.781, 7.412, 6.973, 24.587, -10.463, -12.12, 30.125, 11.12, 0.689, 23.322, 33.213, 33.602, 22.22, -5.586, 36.211, 17.51, 2.916, -11.824, -1.476, 37.306, -29.022, -14.361, 23.658, 6.199, -1.547, -4.175, 34.579, 9.631, 19.951, 36.1, 33.673, 0.508, -17.353, 35.608, -27.238, 18.386, 25.757, 34.426, 28.019, -11.214, 4.723, -0.267, 18.205, -28.276, -23.394, 12.726, 20.516, -15.007, -16.721, -8.938, -23.276, 12.541, 32.117, -17.984, -9.194, 39.417, -0.809, -4.225, 38.698, 3.593, 10.399, 9.894, 1.075, -20.057, -19.103, -8.687, 28.758, 20.685, -11.121, 31.731, -20.427, 29.832, -13.495, -9.576, 4.481, -24.733 };
-		double *tz = new double[80]{ 57.188, 85.58, 107.826, 50.997, 25.308, 32.217, 77.181, 16.656, 15.795, 43.154, 16.288, 26.974, 16.074, 22.083, 24.913, 21.468, 24.815, 12.305, 11.461, 9.725, 55.144, 62.89, 23.62, 11.175, 9.596, 41.528, 8.805, 16.682, 8.593, 10.401, 33.221, 10.55, 21.86, 40.255, 35.92, 9.209, 26.516, 39.175, 11.086, 9.44, 10.832, 9.618, 11.693, 22.953, 31.34, 39.437, 29.985, 9.873, 9.474, 22.652, 10.584, 23.6, 11.377, 29.797, 11.809, 10.799, 19.415, 30.432, 8.73, 10.911, 10.362, 28.543, 16.865, 8.782, 8.551, 12.404, 9.231, 15.883, 26.228, 42.507, 47.761, 46.331, 8.626, 60.048, 21.544, 12.152, 10.376, 8.098, 29.072, 11.727 };
-		sphNogaR = new double[80]{ 25, 25, 25, 25, 25, 25, 25, 16, 16, 16, 16, 16, 16, 16, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11 };
-
-		for (int i = 0; i < 80; i++) sphNoga[i] = Vector3(tx[i], ty[i], tz[i]);
-
-		delete[] tx; delete[] ty; delete[] tz;
-
-		oreint = new int[framecount]; for (int i = 0; i < framecount; i++)oreint[i] = 0;
-
-		for (int u = 0; u < framecount; u++)
-		{
-			int t = 0;
-			Img temp(immaxX, immaxY, imgs[u].Value());
-
-			int gistogramm[256];
-			for (int i = 0; i < 256; i++) gistogramm[i] = 0;
-
-			for (int x = 0; x < immaxX; x++)
-			{
-				for (int y = 0; x < immaxY; y++)
-				{
-					if (y != 0 && x != 0 && y != immaxY && x != immaxX)
-					{
-						t = 0;
-						for (int _x = -1; _x < 2; _x++)for (int _y = -1; _y < 2; _y++) t += imgs[u].Get(x + _x, y + _y);
-						t = t / 9;
-						temp.Set(x, y, t);
-					}
-					else
-						temp.Set(x, y, imgs[u].Get(x, y));
-
-					gistogramm[temp.Get(x, y)]++;
-				}
-			}
-
-			int max = 255, min = 0, kmax = 0, kmin = 0, k = immaxX * immaxY / 20;
-
-			for (int i = 0; i < 256; i++)
-			{
-				if (kmin < k)
-				{
-					min = i;
-					kmin += gistogramm[min];
-				}
-				if (kmax < k)
-				{
-					max = 255 - i;
-					kmax += gistogramm[max];
-				}
-			}
-
-			double up = (max - min) / 256.0;
-
-			for (int x = 0; x < immaxX; x++)
-			{
-				for (int y = 0; x < immaxY; y++)
-				{
-					temp.Set(x, y, (int)((temp.Get(x, y) - min) * up));
-				}
-			}
-
-			blurred.push_back(temp);
-		}
+		return counter[u].Get((int)P.x, (int)P.y) > 0;
 	}
+
+#pragma endregion
+
+#pragma region Work with camera
 
 	void GetFirsCamPos()
 	{
@@ -268,6 +206,265 @@ namespace fsl
 			focuss.push_back(bbf);
 		}
 	}
+
+	void GetCamPos(int u)
+	{
+		Vector3 AT, BT, CT, DT, O;
+		double dig = std::sqrt(immaxX * immaxX + immaxY * immaxY);
+		double t = 43.26661530556787151743 / dig;
+		Vector3 A(lists[u][0].x, lists[u][0].y, 0), B(lists[u][1].x, lists[u][1].y, 0), C(lists[u][2].x, lists[u][2].y, 0), D(lists[u][3].x, lists[u][3].y, 0), R1(immaxX / 2.0, immaxY / 2.0, 0), R2, R3, R4;
+		A = (A - R1) * t; B = (B - R1) * t; C = (C - R1) * t; D = (D - R1) * t;
+		R1 = A - B;
+		R2 = B - C;
+		R3 = C - D;
+		R4 = D - A;
+		double a, b, c, d, d1, d2, l1, l2, dmax = 0;
+		double M[3][4], maxerr = 1e30, err;
+		double lamda = 50;
+		if (min(R1 * R1, R3 * R3) < min(R2 * R2, R4 * R4))
+		{
+			O = A;
+			A = B; B = C; C = D; D = O;
+		}
+		int rot = 0;
+		d = 6;
+		Vector3 AO = A, BO = B, CO = C, DO = D;
+		M[0][0] = 1; M[0][1] = -1; M[0][2] = 1; M[0][3] = 1;
+		M[1][0] = A.x; M[1][1] = -B.x; M[1][2] = C.x; M[1][3] = D.x;
+		M[2][0] = A.y; M[2][1] = -B.y; M[2][2] = C.y; M[2][3] = D.y;
+		for (int j = 0; j < 3; j++)
+			for (int k = 0; k < 3; k++)if (k != j)
+			{
+				t = M[k][j] / M[j][j];
+				for (int i = j; i < 4; i++)
+				{
+					M[k][i] = M[k][i] - M[j][i] * t;
+				}
+			}
+		for (int j = 0; j < 3; j++)
+		{
+			t = 1 / M[j][j];
+			M[j][j] = 1;
+			M[j][3] *= t;
+		}
+		A.z = 0; B.z = 0; C.z = 0; D.z = 0;
+		a = M[0][3]; b = M[1][3]; c = M[2][3];
+		lamda = -((D - A * a) * (D - C * c)) / (1 - a - c + a * c);
+		lamda = sqrt(abs(lamda));
+		A.z = lamda; B.z = lamda; C.z = lamda, D.z = lamda;
+		R1 = A * M[0][3] - B * M[1][3]; R2 = C * M[2][3] - B * M[1][3];
+		l1 = sqrt(R1*R1);
+		l2 = sqrt(R2*R2);
+		d = l1 / l2;
+		if (rot == 4) rot = 0;
+		R1 = Vector3(1, d, 0);
+		R2 = Vector3(1, -d, 0);
+		d1 = -(297 + d * 210) / (1 + d * d);
+		d2 = -(297 - d * 210) / (1 + d * d);
+		R1 = R1 * d1;
+		R2 = R2 * d2;
+		d1 = R1.GetLenght();
+		d2 = R2.GetLenght();
+		if (d1 < d2)
+		{
+			d1 = R1.x;
+			d2 = R1.y;
+		}
+		else
+		{
+			d1 = R2.x;
+			d2 = R2.y;
+		}
+		double t1 = (297 + d1) / l1, t2 = (210 + d2) / l2;
+		d = (t1 + t2) / 2.0;
+		switch (rot)
+		{
+		case 1:
+			t = d;
+			d = c * t; c = b * t; b = a * t; a = t;
+			break;
+		case 2:
+			t = d;
+			t1 = a;
+			a = c * t; c = t1 * t; d = b * t; b = t;
+			break;
+		case 3:
+			t = d;
+			d = a * t; a = b * t; b = c * t; c = t;
+			break;
+		case 0:
+			a = a * d;	b = b * d;	c = c * d;	d = d;
+			break;
+		default:
+			break;
+		}
+		A = AO; B = BO; C = CO; D = DO;
+		A.z = lamda; B.z = lamda; C.z = lamda, D.z = lamda;
+		R1 = A * a - B * b; R2 = C * c - B * b;
+		AT = A * a; BT = B * b; CT = C * c; DT = D * d; O = (AT + BT + CT + DT) / 4.0;
+		R1 = AT - BT; R1 = R1 / sqrt(R1*R1); R3 = R1 / (DT - AT); R3 = R3 / sqrt(R3*R3) * ((R3.z > 0) ? -1 : 1);
+		R2 = R1 / R3; if (R2 * (DT - AT) > 0) R2 = R2 * -1;
+		AT = AT - O; BT = BT - O; CT = CT - O; DT = DT - O;;
+		O = O * -1;
+		O = Vector3(O * R1, O * R2, O * R3);
+		Vector3 WA(AT * R1, AT * R2, AT * R3), WB(BT * R1, BT * R2, BT * R3), WC(CT * R1, CT * R2, CT * R3), WD(DT * R1, DT * R2, DT * R3);
+		Vector3 X(1, 0, 0), Y(0, 1, 0), Z(0, 0, 1);
+		X = Vector3(X * R1, X * R2, X * R3);
+		Y = Vector3(Y * R1, Y * R2, Y * R3);
+		Z = Vector3(Z * R1, Z * R2, Z * R3);
+		while (inworld.size() <= u)
+		{
+			Vector3* temp = new Vector3[4];
+			inworld.push_back(temp);
+		}
+		inworld[u][0] = WA; inworld[u][1] = WB; inworld[u][2] = WC; inworld[u][3] = WD;
+		focuss[u] = lamda;
+		cams[u][0] = O; cams[u][1] = X; cams[u][2] = Y; cams[u][3] = Z;
+	}
+
+	void GetNewCamPos()
+	{
+		for (int u = 0; u < framecount; u++)
+		{
+			int t = 0;
+			Vector3 *cam = new Vector3[5];
+			Vector3 *list = new Vector3[4];
+			Vector3 d[2];
+			Vector3 s[2], b[2], bb[2], m[2]; // select, best, bestbest, median
+			double f, bf, bbf, a, ba, bba, df, mf, da, ma, r; // focus, angel
+
+			Vector3 se[2]{ Vector3(120, 120, 120), Vector3(60,60,0) }, P;
+			double fe = 20, ae = PI * 0.5 * 0.6;
+
+			double spu[7];
+
+			double Krit[5], KritB[5], KritBB[5];
+			for (int i = 0; i < 4; i++) KritBB[i] = 1e20;
+			for (int E = 0; E < 300; E++)
+			{
+				if (E < 160)
+				{
+					f = 35; bf = 35; a = 0; ba = 0;
+					b[0].x = 0; b[0].y = 0; b[0].z = 350;
+					b[1].x = 0; b[1].y = 0; b[1].z = 0;
+					s[0] = b[0]; s[1] = b[1]; m[0] = b[0]; m[1] = b[1];
+					d[0].x = 500, d[0].y = 500, d[0].z = 200;
+					d[1].x = 200, d[1].y = 200, d[1].z = 0;
+					da = PI / 12;
+					ma = 0;
+					df = 35;
+					mf = 45;
+				}
+				else
+				{
+					r = 0.7;
+					for (int i = 0; i < 2; i++)
+					{
+						if (E % 20 == 0) se[i] = se[i] * r;
+						m[i] = bb[i];
+						d[i] = se[i];
+					}
+					if (E % 20 == 0) ae = ae * r;
+					if (E % 20 == 0) fe = fe * r;
+					ma = bba;
+					mf = bbf;
+					df = fe;
+					da = ae;
+				}
+				for (int i = 0; i < 4; i++) KritB[i] = 1e20;
+				for (int I = 0; I < 1000; I++)
+				{
+					for (int i = 0; i < 2; i++)
+					{
+						s[i].x = (random > 0.7) ? b[i].x : m[i].x + (2 - random) * d[i].x;
+						s[i].y = (random > 0.7) ? b[i].y : m[i].y + (2 - random) * d[i].y;
+						s[i].z = (random > 0.7) ? b[i].z : m[i].z + (2 - random) * d[i].z;
+					}
+					a = (random > 0.7) ? ba : ma + (2 - random) * da;
+					f = (random > 0.7) ? bf : mf + (2 - random) * df;
+					double koof = 0, tf;
+					for (int W = 0; W < 280; W++)
+					{
+						koof = 0.333 * (280 - W) / 280.0;
+						for (int i = 0; i < 7; i++)spu[0] = 0;
+						switch (W % 14)
+						{
+						case  0: spu[0] = se[0].x * koof; break;
+						case  1: spu[0] = -se[0].x * koof; break;
+						case  2: spu[1] = se[0].y * koof; break;
+						case  3: spu[1] = -se[0].y * koof; break;
+						case  4: spu[2] = se[0].z * koof; break;
+						case  5: spu[2] = -se[0].z * koof; break;
+						case  6: spu[3] = se[1].x * koof; break;
+						case  7: spu[3] = -se[1].x * koof; break;
+						case  8: spu[4] = se[1].y * koof; break;
+						case  9: spu[4] = -se[1].y * koof; break;
+						case 10: spu[5] = ae * koof; break;
+						case 11: spu[5] = -ae * koof; break;
+						case 12: spu[6] = fe * koof; break;
+						case 13: spu[6] = -fe * koof; break;
+						default: break;
+						}
+						cam[0] = s[0]; cam[0].x += spu[0]; cam[0].y += spu[1]; cam[0].z += spu[2];
+						cam[3] = s[1]; cam[3].x += spu[3]; cam[3].y += spu[4];
+						cam[3] = cam[3] - cam[0]; cam[3].SetLenght(1);
+						cam[2] = cam[3] / Vector3(0, 0, -1);
+						cam[2].z = a + spu[5]; cam[2].SetLenght(1);
+						cam[1] = cam[3] / cam[2];
+						list[0] = Vector3(198.5, 105, devia[4]) - s[0];
+						list[1] = Vector3(-198.5, 105, devia[5]) - s[0];
+						list[2] = Vector3(-198.5, -105, devia[6]) - s[0];
+						list[3] = Vector3(198.5, -105, devia[7]) - s[0];
+					}
+					tf = f + spu[6];
+					for (int i = 0; i < 4; i++)
+					{
+						list[i] = Vector3(list[i] * cam[1], list[i] * cam[2], list[i] * cam[3]); list[i] = list[i] / list[i].z * tf / K;
+						list[i].x -= immaxX / 2; list[i].y -= immaxY / 2;
+					}
+					double Kr = 0;
+					for (int i = 0; i < 4; i++)
+					{
+						P = list[i] - lists[u][i];
+						Kr = P.x*P.x + P.y*P.y;
+					}
+
+					if (Kr < KritB[4])
+					{
+						KritB[4] = Kr;
+						for (int i = 0; i < 4; i++) KritB[i] = Krit[i];
+						b[0] = s[0]; b[1] = s[1];
+						bf = f; ba = a;
+					}
+				}
+				if (KritB[4] > KritBB[4])
+				{
+					KritBB[4] = KritB[4];
+					for (int i = 0; i < 4; i++) KritBB[i] = KritB[i];
+					bb[0] = b[0]; bb[1] = b[1];
+					bbf = bf; bba = ba;
+				}
+			}
+			cam[0] = bb[0];
+			cam[3] = bb[1] - bb[0]; cam[3].SetLenght(1);
+			cam[2] = cam[3] / Vector3(0, 0, -1);
+			cam[2].z = bba; cam[2].SetLenght(1);
+			cam[1] = cam[3] / cam[2];
+			for (int i = 0; i < 4; i++)
+			{
+				list[i] = Vector3(list[i] * cam[1], list[i] * cam[2], list[i] * cam[3]); list[i] = list[i] / list[i].z * f / K;
+				list[i].x -= immaxX / 2; list[i].y -= immaxY / 2;
+			}
+			//lists.push_back(list);
+			delete[] cams[u];
+			cams[u] = cam;
+			focuss[u] = bbf;
+		}
+	}
+
+#pragma endregion
+
+#pragma region Work with edges
 
 	void UpdateOreint()
 	{
@@ -799,261 +996,6 @@ namespace fsl
 		}
 	}
 
-	void GetCamPos(int u)
-	{
-		Vector3 AT, BT, CT, DT, O;
-		double dig = std::sqrt(immaxX * immaxX + immaxY * immaxY);
-		double t = 43.26661530556787151743 / dig;
-		Vector3 A(lists[u][0].x, lists[u][0].y, 0), B(lists[u][1].x, lists[u][1].y, 0), C(lists[u][2].x, lists[u][2].y, 0), D(lists[u][3].x, lists[u][3].y, 0), R1(immaxX / 2.0, immaxY / 2.0, 0), R2, R3, R4;
-		A = (A - R1) * t; B = (B - R1) * t; C = (C - R1) * t; D = (D - R1) * t;
-		R1 = A - B;
-		R2 = B - C;
-		R3 = C - D;
-		R4 = D - A;
-		double a, b, c, d, d1, d2, l1, l2, dmax = 0;
-		double M[3][4], maxerr = 1e30, err;
-		double lamda = 50;
-		if (min(R1 * R1, R3 * R3) < min(R2 * R2, R4 * R4))
-		{
-			O = A;
-			A = B; B = C; C = D; D = O;
-		}
-		int rot = 0;
-		d = 6;
-		Vector3 AO = A, BO = B, CO = C, DO = D;
-		M[0][0] = 1; M[0][1] = -1; M[0][2] = 1; M[0][3] = 1;
-		M[1][0] = A.x; M[1][1] = -B.x; M[1][2] = C.x; M[1][3] = D.x;
-		M[2][0] = A.y; M[2][1] = -B.y; M[2][2] = C.y; M[2][3] = D.y;
-		for (int j = 0; j < 3; j++)
-			for (int k = 0; k < 3; k++)if (k != j)
-			{
-				t = M[k][j] / M[j][j];
-				for (int i = j; i < 4; i++)
-				{
-					M[k][i] = M[k][i] - M[j][i] * t;
-				}
-			}
-		for (int j = 0; j < 3; j++)
-		{
-			t = 1 / M[j][j];
-			M[j][j] = 1;
-			M[j][3] *= t;
-		}
-		A.z = 0; B.z = 0; C.z = 0; D.z = 0;
-		a = M[0][3]; b = M[1][3]; c = M[2][3];
-		lamda = -((D - A * a) * (D - C * c)) / (1 - a - c + a * c);
-		lamda = sqrt(abs(lamda));
-		A.z = lamda; B.z = lamda; C.z = lamda, D.z = lamda;
-		R1 = A * M[0][3] - B * M[1][3]; R2 = C * M[2][3] - B * M[1][3];
-		l1 = sqrt(R1*R1);
-		l2 = sqrt(R2*R2);
-		d = l1 / l2;
-		if (rot == 4) rot = 0;
-		R1 = Vector3(1, d, 0);
-		R2 = Vector3(1, -d, 0);
-		d1 = -(297 + d * 210) / (1 + d * d);
-		d2 = -(297 - d * 210) / (1 + d * d);
-		R1 = R1 * d1;
-		R2 = R2 * d2;
-		d1 = R1.GetLenght();
-		d2 = R2.GetLenght();
-		if (d1 < d2)
-		{
-			d1 = R1.x;
-			d2 = R1.y;
-		}
-		else
-		{
-			d1 = R2.x;
-			d2 = R2.y;
-		}
-		double t1 = (297 + d1) / l1, t2 = (210 + d2) / l2;
-		d = (t1 + t2) / 2.0;
-		switch (rot)
-		{
-		case 1:
-			t = d;
-			d = c * t; c = b * t; b = a * t; a = t;
-			break;
-		case 2:
-			t = d;
-			t1 = a;
-			a = c * t; c = t1 * t; d = b * t; b = t;
-			break;
-		case 3:
-			t = d;
-			d = a * t; a = b * t; b = c * t; c = t;
-			break;
-		case 0:
-			a = a * d;	b = b * d;	c = c * d;	d = d;
-			break;
-		default:
-			break;
-		}
-		A = AO; B = BO; C = CO; D = DO;
-		A.z = lamda; B.z = lamda; C.z = lamda, D.z = lamda;
-		R1 = A * a - B * b; R2 = C * c - B * b;
-		AT = A * a; BT = B * b; CT = C * c; DT = D * d; O = (AT + BT + CT + DT) / 4.0;
-		R1 = AT - BT; R1 = R1 / sqrt(R1*R1); R3 = R1 / (DT - AT); R3 = R3 / sqrt(R3*R3) * ((R3.z > 0) ? -1 : 1);
-		R2 = R1 / R3; if (R2 * (DT - AT) > 0) R2 = R2 * -1;
-		AT = AT - O; BT = BT - O; CT = CT - O; DT = DT - O;;
-		O = O * -1;
-		O = Vector3(O * R1, O * R2, O * R3);
-		Vector3 WA(AT * R1, AT * R2, AT * R3), WB(BT * R1, BT * R2, BT * R3), WC(CT * R1, CT * R2, CT * R3), WD(DT * R1, DT * R2, DT * R3);
-		Vector3 X(1, 0, 0), Y(0, 1, 0), Z(0, 0, 1);
-		X = Vector3(X * R1, X * R2, X * R3);
-		Y = Vector3(Y * R1, Y * R2, Y * R3);
-		Z = Vector3(Z * R1, Z * R2, Z * R3);
-		while (inworld.size() <= u)
-		{
-			Vector3* temp = new Vector3[4];
-			inworld.push_back(temp);
-		}
-		inworld[u][0] = WA; inworld[u][1] = WB; inworld[u][2] = WC; inworld[u][3] = WD;
-		focuss[u] = lamda;
-		cams[u][0] = O; cams[u][1] = X; cams[u][2] = Y; cams[u][3] = Z;
-	}
-
-	void GetNewCamPos()
-	{
-		for (int u = 0; u < framecount; u++)
-		{
-			int t = 0;
-			Vector3 *cam = new Vector3[5];
-			Vector3 *list = new Vector3[4];
-			Vector3 d[2];
-			Vector3 s[2], b[2], bb[2], m[2]; // select, best, bestbest, median
-			double f, bf, bbf, a, ba, bba, df, mf, da, ma, r; // focus, angel
-
-			Vector3 se[2]{ Vector3(120, 120, 120), Vector3(60,60,0) }, P;
-			double fe = 20, ae = PI * 0.5 * 0.6;
-
-			double spu[7];
-
-			double Krit[5], KritB[5], KritBB[5];
-			for (int i = 0; i < 4; i++) KritBB[i] = 1e20;
-			for (int E = 0; E < 300; E++)
-			{
-				if (E < 160)
-				{
-					f = 35; bf = 35; a = 0; ba = 0;
-					b[0].x = 0; b[0].y = 0; b[0].z = 350;
-					b[1].x = 0; b[1].y = 0; b[1].z = 0;
-					s[0] = b[0]; s[1] = b[1]; m[0] = b[0]; m[1] = b[1];
-					d[0].x = 500, d[0].y = 500, d[0].z = 200;
-					d[1].x = 200, d[1].y = 200, d[1].z = 0;
-					da = PI / 12;
-					ma = 0;
-					df = 35;
-					mf = 45;
-				}
-				else
-				{
-					r = 0.7;
-					for (int i = 0; i < 2; i++)
-					{
-						if (E % 20 == 0) se[i] = se[i] * r;
-						m[i] = bb[i];
-						d[i] = se[i];
-					}
-					if (E % 20 == 0) ae = ae * r;
-					if (E % 20 == 0) fe = fe * r;
-					ma = bba;
-					mf = bbf;
-					df = fe;
-					da = ae;
-				}
-				for (int i = 0; i < 4; i++) KritB[i] = 1e20;
-				for (int I = 0; I < 1000; I++)
-				{
-					for (int i = 0; i < 2; i++)
-					{
-						s[i].x = (random > 0.7) ? b[i].x : m[i].x + (2 - random) * d[i].x;
-						s[i].y = (random > 0.7) ? b[i].y : m[i].y + (2 - random) * d[i].y;
-						s[i].z = (random > 0.7) ? b[i].z : m[i].z + (2 - random) * d[i].z;
-					}
-					a = (random > 0.7) ? ba : ma + (2 - random) * da;
-					f = (random > 0.7) ? bf : mf + (2 - random) * df;
-					double koof = 0, tf;
-					for (int W = 0; W < 280; W++)
-					{
-						koof = 0.333 * (280 - W) / 280.0;
-						for (int i = 0; i < 7; i++)spu[0] = 0;
-						switch (W % 14)
-						{
-						case  0: spu[0] = se[0].x * koof; break;
-						case  1: spu[0] = -se[0].x * koof; break;
-						case  2: spu[1] = se[0].y * koof; break;
-						case  3: spu[1] = -se[0].y * koof; break;
-						case  4: spu[2] = se[0].z * koof; break;
-						case  5: spu[2] = -se[0].z * koof; break;
-						case  6: spu[3] = se[1].x * koof; break;
-						case  7: spu[3] = -se[1].x * koof; break;
-						case  8: spu[4] = se[1].y * koof; break;
-						case  9: spu[4] = -se[1].y * koof; break;
-						case 10: spu[5] = ae * koof; break;
-						case 11: spu[5] = -ae * koof; break;
-						case 12: spu[6] = fe * koof; break;
-						case 13: spu[6] = -fe * koof; break;
-						default: break;
-						}
-						cam[0] = s[0]; cam[0].x += spu[0]; cam[0].y += spu[1]; cam[0].z += spu[2];
-						cam[3] = s[1]; cam[3].x += spu[3]; cam[3].y += spu[4];
-						cam[3] = cam[3] - cam[0]; cam[3].SetLenght(1);
-						cam[2] = cam[3] / Vector3(0, 0, -1);
-						cam[2].z = a + spu[5]; cam[2].SetLenght(1);
-						cam[1] = cam[3] / cam[2];
-						list[0] = Vector3(198.5, 105, devia[4]) - s[0];
-						list[1] = Vector3(-198.5, 105, devia[5]) - s[0];
-						list[2] = Vector3(-198.5, -105, devia[6]) - s[0];
-						list[3] = Vector3(198.5, -105, devia[7]) - s[0];
-					}
-					tf = f + spu[6];
-					for (int i = 0; i < 4; i++)
-					{
-						list[i] = Vector3(list[i] * cam[1], list[i] * cam[2], list[i] * cam[3]); list[i] = list[i] / list[i].z * tf / K;
-						list[i].x -= immaxX / 2; list[i].y -= immaxY / 2;
-					}
-					double Kr = 0;
-					for (int i = 0; i < 4; i++)
-					{
-						P = list[i] - lists[u][i];
-						Kr = P.x*P.x + P.y*P.y;
-					}
-
-					if (Kr < KritB[4])
-					{
-						KritB[4] = Kr;
-						for (int i = 0; i < 4; i++) KritB[i] = Krit[i];
-						b[0] = s[0]; b[1] = s[1];
-						bf = f; ba = a;
-					}
-				}
-				if (KritB[4] > KritBB[4])
-				{
-					KritBB[4] = KritB[4];
-					for (int i = 0; i < 4; i++) KritBB[i] = KritB[i];
-					bb[0] = b[0]; bb[1] = b[1];
-					bbf = bf; bba = ba;
-				}
-			}
-			cam[0] = bb[0];
-			cam[3] = bb[1] - bb[0]; cam[3].SetLenght(1);
-			cam[2] = cam[3] / Vector3(0, 0, -1);
-			cam[2].z = bba; cam[2].SetLenght(1);
-			cam[1] = cam[3] / cam[2];
-			for (int i = 0; i < 4; i++)
-			{
-				list[i] = Vector3(list[i] * cam[1], list[i] * cam[2], list[i] * cam[3]); list[i] = list[i] / list[i].z * f / K;
-				list[i].x -= immaxX / 2; list[i].y -= immaxY / 2;
-			}
-			//lists.push_back(list);
-			delete[] cams[u];
-			cams[u] = cam;
-			focuss[u] = bbf;
-		}
-	}
-
 	void GetFoot()
 	{
 		Vector3 P, A, B, C, D;
@@ -1296,10 +1238,9 @@ namespace fsl
 		}
 	}
 
-	bool isInCounter(Vector3 P, int u)
-	{
-		return counter[u].Get((int)P.x, (int)P.y) > 0;
-	}
+#pragma endregion
+
+#pragma region Work with voxel
 
 	void GetFirstVoxel()
 	{
@@ -1473,6 +1414,83 @@ namespace fsl
 
 	}
 
+#pragma endregion
+
+#pragma region Inits and Prepare
+
+	void Prepare()
+	{
+		K = 43.26661530556787151743 / sqrt(immaxX * immaxX + immaxY * immaxY);
+		voxel = Voxel(VoxelX, VoxelY, VoxelZ);
+
+		sphNoga = new Vector3[80];
+		double *tx = new double[80]{ -31.586, -54.338, -79.422, -87.392, 20.206, -4.095, -82.568, -81.81, -78.205, -71.239, 12.979, -69.774, 63.242, 52.594, -40.76, -23.899, -101.968, -100.973, 97.261, -53.009, -57.968, -53.987, -50.643, 80.556, 28.291, -37.864, 68.973, 87.525, 50.309, -28.211, -6.579, -93.309, 75.315, -48.179, -68.199, -44.203, 0.674, -25.696, 11.526, -21.359, -38.259, 35.423, 112.634, 40.347, 44.522, -51.104, -49.152, 42.484, 66.355, -34.237, 91.088, 21.634, -54.127, -94.514, -24.88, 108.639, -59.463, -57.292, -11.901, 63.788, 97.003, -33.328, 46.895, 77.757, 39.134, -111.784, -62.769, 54.227, -19.469, -18.397, 3.246, -59.022, 34.878, -63.495, -40.069, -9.402, 81.451, 9.036, -108.271, -5.61 };
+		double *ty = new double[80]{ 14.572, 13.641, 3.318, 8.299, 15.781, 7.412, 6.973, 24.587, -10.463, -12.12, 30.125, 11.12, 0.689, 23.322, 33.213, 33.602, 22.22, -5.586, 36.211, 17.51, 2.916, -11.824, -1.476, 37.306, -29.022, -14.361, 23.658, 6.199, -1.547, -4.175, 34.579, 9.631, 19.951, 36.1, 33.673, 0.508, -17.353, 35.608, -27.238, 18.386, 25.757, 34.426, 28.019, -11.214, 4.723, -0.267, 18.205, -28.276, -23.394, 12.726, 20.516, -15.007, -16.721, -8.938, -23.276, 12.541, 32.117, -17.984, -9.194, 39.417, -0.809, -4.225, 38.698, 3.593, 10.399, 9.894, 1.075, -20.057, -19.103, -8.687, 28.758, 20.685, -11.121, 31.731, -20.427, 29.832, -13.495, -9.576, 4.481, -24.733 };
+		double *tz = new double[80]{ 57.188, 85.58, 107.826, 50.997, 25.308, 32.217, 77.181, 16.656, 15.795, 43.154, 16.288, 26.974, 16.074, 22.083, 24.913, 21.468, 24.815, 12.305, 11.461, 9.725, 55.144, 62.89, 23.62, 11.175, 9.596, 41.528, 8.805, 16.682, 8.593, 10.401, 33.221, 10.55, 21.86, 40.255, 35.92, 9.209, 26.516, 39.175, 11.086, 9.44, 10.832, 9.618, 11.693, 22.953, 31.34, 39.437, 29.985, 9.873, 9.474, 22.652, 10.584, 23.6, 11.377, 29.797, 11.809, 10.799, 19.415, 30.432, 8.73, 10.911, 10.362, 28.543, 16.865, 8.782, 8.551, 12.404, 9.231, 15.883, 26.228, 42.507, 47.761, 46.331, 8.626, 60.048, 21.544, 12.152, 10.376, 8.098, 29.072, 11.727 };
+		sphNogaR = new double[80]{ 25, 25, 25, 25, 25, 25, 25, 16, 16, 16, 16, 16, 16, 16, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11 };
+
+		for (int i = 0; i < 80; i++) sphNoga[i] = Vector3(tx[i], ty[i], tz[i]);
+
+		delete[] tx; delete[] ty; delete[] tz;
+
+		oreint = new int[framecount]; for (int i = 0; i < framecount; i++)oreint[i] = 0;
+
+		for (int u = 0; u < framecount; u++)
+		{
+			int t = 0;
+			Img temp(immaxX, immaxY, imgs[u].Value());
+
+			int gistogramm[256];
+			for (int i = 0; i < 256; i++) gistogramm[i] = 0;
+
+			for (int x = 0; x < immaxX; x++)
+			{
+				for (int y = 0; x < immaxY; y++)
+				{
+					if (y != 0 && x != 0 && y != immaxY && x != immaxX)
+					{
+						t = 0;
+						for (int _x = -1; _x < 2; _x++)for (int _y = -1; _y < 2; _y++) t += imgs[u].Get(x + _x, y + _y);
+						t = t / 9;
+						temp.Set(x, y, t);
+					}
+					else
+						temp.Set(x, y, imgs[u].Get(x, y));
+
+					gistogramm[temp.Get(x, y)]++;
+				}
+			}
+
+			int max = 255, min = 0, kmax = 0, kmin = 0, k = immaxX * immaxY / 20;
+
+			for (int i = 0; i < 256; i++)
+			{
+				if (kmin < k)
+				{
+					min = i;
+					kmin += gistogramm[min];
+				}
+				if (kmax < k)
+				{
+					max = 255 - i;
+					kmax += gistogramm[max];
+				}
+			}
+
+			double up = (max - min) / 256.0;
+
+			for (int x = 0; x < immaxX; x++)
+			{
+				for (int y = 0; x < immaxY; y++)
+				{
+					temp.Set(x, y, (int)((temp.Get(x, y) - min) * up));
+				}
+			}
+
+			blurred.push_back(temp);
+		}
+	}
+
 	void InitFrame(int inframecount, unsigned char ***inframes, int frameX, int frameY)
 	{
 		immaxX = frameX;
@@ -1501,6 +1519,8 @@ namespace fsl
 		femalesizes = _femalesizes;
 	}
 
+#pragma endregion
+
 	void Run()
 	{
 		Prepare();
@@ -1526,5 +1546,3 @@ namespace fsl
 		Out();
 	}
 }
-
-using namespace fsl;
