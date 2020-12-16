@@ -1,21 +1,13 @@
 // Main.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <iostream>
-#include <vector>
-#include <thread>
-#include <cmath>
-#include "Vectors.h"
 #include "FSL.h"
-//#include 
-
-
-#define uchar unsigned char
-
-// ИСпользовать систему частиц для моделирование поведения листа для уточнения харрактеристик. Края движуться вдоль направляющих
+#include "FSLModules.h"
 
 namespace fsl
 {
+#pragma region LocalVars
+
 	double min(double a, double b) { return (a > b) ? b : a; }
 	double max(double a, double b) { return (a < b) ? b : a; }
 	double K, devia[8]{ 0,0,0,0,0,0,0,0 };
@@ -35,6 +27,8 @@ namespace fsl
 
 	std::vector<Vector3*> males, females;
 	std::vector<int> malesizes, femalesizes;
+
+#pragma endregion
 
 	void ToCam(Vector3 &base, int camnum)
 	{
@@ -1472,8 +1466,6 @@ namespace fsl
 
 		usedCamera = new int[framecount]; for (int i = 0; i < framecount; i++) usedCamera[i] = variant[best][i];
 	}
-
-	// Проходим по всем точкам шаблона, строим перпендикулярный ряд for i: = 1 to 30 do что за 30?!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	void GetBestVoxel()
 	{

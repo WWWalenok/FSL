@@ -155,12 +155,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="FSL.cpp" />
+    <ClCompile Include="Img.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="Vectors.cpp" />
+    <ClCompile Include="Voxel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FSL.h" />
-    <ClInclude Include="Vectors.h" />
+    <ClInclude Include="FSLModules.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
