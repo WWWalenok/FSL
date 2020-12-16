@@ -1,12 +1,11 @@
-// Main.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include "FSL.h"
 #include "FSLModules.h"
 
+		//GetBestVoxel: Проходим по всем точкам шаблона, строим перпендикулярный ряд for i: = 1 to 30 do что за 30?
+
 namespace fsl
 {
-#pragma region LocalVars
+#pragma region Local / Global Vars
 
 	double min(double a, double b) { return (a > b) ? b : a; }
 	double max(double a, double b) { return (a < b) ? b : a; }
@@ -27,6 +26,8 @@ namespace fsl
 
 	std::vector<Vector3*> males, females;
 	std::vector<int> malesizes, femalesizes;
+
+	bool ismale;
 
 #pragma endregion
 
@@ -1385,7 +1386,6 @@ namespace fsl
 
 		for (int k = 0; k < framecount; k++) if (variant[best][k] == 1)
 		{
-
 			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) if (voxel.USGet(x, y, z) == 1)
 			{
 				P.x = (x - VoxelX / 2.0) * VoxelS; P.y = (y - VoxelY / 2.0) * VoxelS; P.z = (z - 5) * VoxelS;
@@ -1397,6 +1397,22 @@ namespace fsl
 			}
 		}
 
+		ClearVoxel();
+
+		usedCamera = new int[framecount]; for (int i = 0; i < framecount; i++) usedCamera[i] = variant[best][i];
+	}
+
+	void GetBestVoxel()
+	{
+		Centrovka();
+		BestTop();
+		BestStopa();
+		ClearVoxel();
+		Podgonka();
+	}
+
+	void ClearVoxel()
+	{
 		for (int x = 1; x < VoxelX - 1; x++)for (int y = 1; y < VoxelY - 1; y++)for (int z = 1; z < VoxelZ - 1; z++) if (voxel.USGet(x, y, z) == 1)
 		{
 			for (int i = -1; i < 2; i++)for (int j = -1; j < 2; j++)for (int k = -1; k < 2; k++)if (voxel.USGet(x, y, z) >= 13) if (voxel.USGet(x + i, y + j, z + k) == 1)
@@ -1404,13 +1420,113 @@ namespace fsl
 			voxel.USGet(x, y, z) -= 1;
 		}
 		for (int x = 1; x < VoxelX - 1; x++)for (int y = 1; y < VoxelY - 1; y++)for (int z = 1; z < VoxelZ - 1; z++) if (voxel.USGet(x, y, z) >= 12) voxel.USGet(x, y, z) = 1; else voxel.USGet(x, y, z) = 0;
-
-		usedCamera = new int[framecount]; for (int i = 0; i < framecount; i++) usedCamera[i] = variant[best][i];
 	}
 
-	void GetBestVoxel()
+	void BestStopa()
 	{
-		// Проходим по всем точкам шаблона, строим перпендикулярный ряд for i: = 1 to 30 do что за 30?
+		std::vector<Vector3*> &ch = males, correct;
+		std::vector<int> &chsizes = malesizes;
+		if (!ismale)
+		{
+			ch = females;
+			chsizes = femalesizes;
+		}
+
+		for (int i = 0; i < ch.size(); i++)
+		{
+			Vector3 *t = new Vector3[chsizes[i]];
+			for (int j = 0; j < chsizes[i]; j++) t[j] = ch[i][j];
+			correct.push_back(t);
+		}
+
+		double *kriteries = new double[ch.size()];
+		double *dxs = new double[ch.size()];
+		double *dys = new double[ch.size()];
+		double *ss = new double[ch.size()];
+		double *sys = new double[ch.size()];
+		double *fis = new double[ch.size()];
+
+		for (int n = 0; n < ch.size(); n++)
+		{
+			// поиск критериев
+
+
+		}
+
+
+
+		for (int i = 0; i < ch.size(); i++)
+		{
+			delete[] correct[i];
+		}
+		correct.clear();
+		delete[]kriteries;
+		delete[]dxs;
+		delete[]dys;
+		delete[]ss;
+		delete[]sys;
+		delete[]fis;
+	}
+
+	void BestTop()
+	{
+
+	}
+
+	void Centrovka()
+	{
+
+	}
+
+	void MakeKakScaner()
+	{
+		// Код посметьева
+		double *AF = new double[72];
+		AF[0] = 0.000; AF[1] = 1.500; AF[2] = 1.495; AF[3] = 1.506; AF[4] = 1.525; AF[5] = 1.554; AF[6] = 1.599; AF[7] = 1.665; AF[8] = 1.753; AF[9] = 1.871;
+		AF[10] = 2.020; AF[11] = 2.200; AF[12] = 2.435; AF[13] = 2.695; AF[14] = 2.976; AF[15] = 3.270; AF[16] = 3.565; AF[17] = 3.853; AF[18] = 4.125; AF[19] = 4.370;
+		AF[20] = 4.579; AF[21] = 4.750; AF[22] = 4.849; AF[23] = 4.906; AF[24] = 4.920; AF[25] = 4.895; AF[26] = 4.840; AF[27] = 4.758; AF[28] = 4.656; AF[29] = 4.539;
+		AF[30] = 4.414; AF[31] = 4.280; AF[32] = 4.162; AF[33] = 4.035; AF[34] = 3.899; AF[35] = 3.748; AF[36] = 3.576; AF[37] = 3.377; AF[38] = 3.145; AF[39] = 2.874;
+		AF[40] = 2.557; AF[41] = 2.200; AF[42] = 1.761; AF[43] = 1.292; AF[44] = 0.795; AF[45] = 0.288; AF[46] = -0.212; AF[47] = -0.692; AF[48] = -1.136; AF[49] = -1.527;
+		AF[50] = -1.849; AF[51] = -2.100; AF[52] = -2.221; AF[53] = -2.268; AF[54] = -2.239; AF[55] = -2.149; AF[56] = -2.009; AF[57] = -1.833; AF[58] = -1.632; AF[59] = -1.419;
+		AF[60] = -1.207; AF[61] = -1.000; AF[62] = -0.835; AF[63] = -0.685; AF[64] = -0.556; AF[65] = -0.445; AF[66] = -0.347; AF[67] = -0.262; AF[68] = -0.187; AF[69] = -0.118;
+		AF[70] = -0.055; AF[71] = 0.000;
+		int begin = -1, end = -1;
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
+		{
+			if (begin == -1 && voxel.USGet(x, y, z) == 1) begin = x;
+			if (end == -1 && voxel.USGet(VoxelX - 1 - x, y, z) == 1) end = x;
+			if (begin == -1 && end == -1) { x = VoxelX; y = VoxelY; z = VoxelZ; }
+		}
+		double r = 0;
+		uchar buff = 0, maskin = 0b00000010, maskout = 0b00000001;
+		for (int x = begin; x <= end; x++)
+		{
+			r = (x - begin) / (double)(begin - end) * 100;
+			if (r > 71) break;
+			r = AF[(int)r] * VoxelS;
+			for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
+			{
+				buff = voxel.Get(x, y, z + (int)r);
+				if (buff & maskout > 0)
+					voxel.Get(x, y, z) = voxel.Get(x, y, z) | maskin;
+			}
+		}
+		for (int x = begin; x <= end; x++)
+		{
+			for (int y = 0; y < VoxelY; y++)
+			{
+				for (int z = 0; z < VoxelZ; z++)
+				{
+					buff = voxel.Get(x, y, z);
+					if (buff & maskin > 0 || (z < 3 && voxel.Get(x, y, 0) & maskout > 0))
+						buff = maskout;
+				}
+			}
+		}
+	}
+
+	void Podgonka()
+	{
 
 	}
 
@@ -1489,6 +1605,11 @@ namespace fsl
 
 			blurred.push_back(temp);
 		}
+	}
+
+	void InitUserStat(bool male)
+	{
+		ismale = male;
 	}
 
 	void InitFrame(int inframecount, unsigned char ***inframes, int frameX, int frameY)
