@@ -1426,36 +1426,10 @@ namespace fsl
 			int count = 1;
 			while(count != 0)
 			{
-				count = 0;
-				for (int x = 1; x < immaxX - 1; x++) for (int y = 1; y < immaxY - 1; y++)
-				{
-					if (counter[u].Get(x, y) == 0)
-					{
-						     if (counter[u].Get(x + 1, y) == 100) counter[u].Set(x, y, 100);
-						else if (counter[u].Get(x - 1, y) == 100) counter[u].Set(x, y, 100);
-						else if (counter[u].Get(x, y + 1) == 100) counter[u].Set(x, y, 100);
-						else if (counter[u].Get(x, y - 1) == 100) counter[u].Set(x, y, 100);
-						else if (counter[u].Get(x + 1, y) == 150) counter[u].Set(x, y, 100);
-						else if (counter[u].Get(x - 1, y) == 150) counter[u].Set(x, y, 100);
-						else if (counter[u].Get(x, y + 1) == 150) counter[u].Set(x, y, 100);
-						else if (counter[u].Get(x, y - 1) == 150) counter[u].Set(x, y, 100);
-						if (counter[u].Get(x, y) == 100)count++;
-					}
-					if (counter[u].Get(x, y) == 100)
-					{
-						count++;
-						counter[u].Set(x, y, 150);
-					}
-					if (counter[u].Get(x, y) == 150)
-					{
-						count++;
-						counter[u].Set(x, y, 255);
-					}
-				}
-				if (count != 0)
+				for (int n1 = 0; n1 < 2; n1++)for (int n2 = 0; n2 < 2; n2++)if (count != 0)
 				{
 					count = 0;
-					for (int x = immaxX - 2; x > 0; x--) for (int y = immaxY - 2; y > 0; y--)
+					for (int k1 = 1,x = (n1 == 0) ? k1 : immaxX - 1 - k1; k1 < immaxX - 1; k1++, x = (n1 == 0) ? k1 : immaxX - 1 - k1) for (int k2 = 1, y = (n2 == 0) ? k2 : immaxY - 1 - k2; k2 < immaxY - 1; k2++, y = (n2 == 0) ? k2 : immaxY - 1 - k2)
 					{
 						if (counter[u].Get(x, y) == 0)
 						{
@@ -1719,8 +1693,3 @@ namespace fsl
 }
 
 using namespace fsl;
-
-int main()
-{
-	
-}
