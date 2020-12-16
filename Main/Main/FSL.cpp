@@ -1,7 +1,13 @@
 #include "FSL.h"
 #include "FSLModules.h"
 
-		//GetBestVoxel: Проходим по всем точкам шаблона, строим перпендикулярный ряд for i: = 1 to 30 do что за 30?
+//GetBestVoxel:
+//Проходим по всем точкам шаблона, строим перпендикулярный ряд for i: = 1 to 30 do что за 30?
+
+//BestStopa:
+//if Orientation=1 then e:=-1 else e:=1;
+//Krit: = e * Krit;
+// Какого черта ?
 
 #define for3(k) for (int i0 = k - 1, i1 = 0, i2 = 1; i1 < k; i1++, i2 = (i2 == k - 1) ? 0 : i2 + 1, i0 = (i0 == k - 1) ? 0 : i0 + 1)
 
@@ -1442,11 +1448,7 @@ namespace fsl
 		}
 
 		double *kriteries = new double[ch.size()];
-		double *dxs = new double[ch.size()];
-		double *dys = new double[ch.size()];
-		double *ss = new double[ch.size()];
-		double *sys = new double[ch.size()];
-		double *fis = new double[ch.size()];
+		double *koof = new double[ch.size()];
 
 		Vector2 chablon[30][7];
 
@@ -1514,6 +1516,7 @@ namespace fsl
 				for (int i = -3; i <= 3; i++) if(i != 0)
 					chablon[i1][i] = chablon[i1][0] + X * 2.0 * i;
 			}
+
 			//double **buffer = new double*[100];
 			//for (int i = 0; i < 100; i++)
 			//{
@@ -1540,9 +1543,210 @@ namespace fsl
 			//delete[]buffer;
 
 			// конец создани шаблона
+
+			double
+				G11 = -40, G12 = 40,
+				G21 = -30, G22 = 30,
+				G31 = -25 / 180 * PI, G32 = 25 / 180 * PI,
+				G41 = 0.7, G42 = 1.3,
+				Kritb = -1e20,
+				xb, yb, fib, zb,
+				r, co, si;
+
+			Vector2 Cen, P; for (int i = 0; i < 30; i++) Cen = Cen + chablon[i][3];
+
+			Cen = Cen / 30.0;
+
+			Vector2 used[30][7];
+
+			uchar temp = 0;
+
+			for (int E = 0; E < 100; E++)
+			{
+				double x, y, fi, z;
+				for (int I = 0; I < 120; I++)
+				{
+					x = G11 + random * (G12 - G11);
+					y = G21 + random * (G22 - G21);
+					fi = G31 + random * (G32 - G31);
+					z = G41 + random * (G42 - G41);
+					P = Vector2(x, y);
+					co = cos(fi);
+					si = sqrt(1 - co * co);
+					double Kr = 0;
+					for (int i = 0; i < 30; i++)
+					{
+						for (int j = 0; j < 7; j++)
+						{
+							used[i][j] = (chablon[i][j] - Cen) * z;
+							used[i][j] = Cen + P + Vector2(used[i][j].x * co - used[i][j].y * si, used[i][j].x * si + used[i][j].y * co);
+						}
+						for (int j1 = 1, j2 = -1; j1 < 4; j1++, j2--)
+						{
+							for (int z = 0; z < 20; z++)
+							{
+								temp = voxel.Get((int)used[i][j1].x, (int)used[i][j1].y, z);
+								if (temp > 0)
+								{
+									Kr += (temp - voxel.Get((int)used[i][j2].x, (int)used[i][j2].y, z)) * (1 + j1) * 0.25;
+									z = 21;
+								}
+							}
+						}
+					}
+
+					//if Orientation=1 then e:=-1 else e:=1;
+					//Krit: = e * Krit;
+					// Какого черта ?
+
+					if (Kr > Kritb)
+					{
+						Kritb = Kr;
+						xb = x;
+						yb = y;
+						fib = fi;
+						zb = z;
+					}
+				}
+				r = 0.97;
+				if (xb < ((G11 + G12)*0.5)) G12 = G11 + r * (G12 - G11); else G11 = G12 - r * (G12 - G11);
+				if (yb < ((G21 + G22)*0.5)) G22 = G21 + r * (G22 - G21); else G21 = G22 - r * (G22 - G21);
+				if (fib < ((G31 + G32)*0.5)) G32 = G31 + r * (G32 - G31); else G31 = G32 - r * (G32 - G31);
+				if (zb < ((G41 + G42)*0.5)) G42 = G41 + r * (G42 - G41); else G41 = G42 - r * (G42 - G41);
+			}
+
+			kriteries[n] = Kritb;
+
+			Vector3 Cen3(Cen.x, Cen.y, 0), P3(xb, yb, 0);
+			co = cos(fib);
+			si = sqrt(1 - co * co);
+			for (int i = 0; i < chsizes[n]; i++)
+			{
+				correct[n][i] = (correct[n][i] - Cen3) * zb;
+				correct[n][i] = Cen3 + P3 + Vector3(correct[n][i].x * co - correct[n][i].y * si, correct[n][i].x * si + correct[n][i].y * co, correct[n][i].z);
+			}
+
+			double x0, x1, z0, z1;
+
+			int len[VoxelZ];
+
+			for (int block = 0; block < 20; block++)
+			{
+				x0 = minX + block * (maxX - minX) / 40.0;
+				x1 = minX + (block + 1) * (maxX - minX) / 40.0;
+				int x = (int)((x1 + x0) / 2.0 * VoxelS) + VoxelX / 2;
+
+				int max = 0, lenght = 0;
+				for (int z = 0; z < VoxelZ; z++)
+				{
+					len[z] = 0;
+					for (int y = 0; y < VoxelY; y++) if (voxel.USGet(x, y, z) > 0) len[z]++;
+					if (len[z] > max)
+					{
+						max = len[z];
+						z1 = (z > VoxelZ / 3.0) ? 0 : z * 1.5;
+					}
+				}
+				for (int z = 0; z < VoxelZ; z++) if (len[z] > max * 0.7) { z0 = (z > VoxelZ / 3.0) ? 0 : z; break; }
+
+				double irad = 0, counteroflenght = 0;
+
+				for (int i = 0; i < chsizes[n]; i++) if(correct[n][i].x > x0 && correct[n][i].x < x1 && correct[n][i].z > z0 && correct[n][i].z < z1)
+				{
+					uchar base = voxel.Get(correct[n][i].y, correct[n][i].y, correct[n][i].y);
+					for (int rad = 0; rad < 30; rad++)
+					{
+						int V = 0, V2 = 0;
+						for (int _x = -rad, rad2 = 0; _x <= rad; _x++, rad2 = sqrt(rad * rad - _x * _x)) for (int _y = -rad2, rad3 = 0; _y <= rad2; _y++, rad3 = sqrt(rad * rad - _x * _x - _y * _y)) for (int _z = -rad3; _z <= rad3; _z++)
+						{
+							V++;
+							if (voxel.Get(correct[n][i].x + _x, correct[n][i].y + _y, correct[n][i].z + _z) == base) V2++;
+						}
+						if (V != V2)
+						{
+							counteroflenght++;
+							irad += rad;
+							rad = 1000000;
+							break;
+						}
+					}
+				}
+				if(counteroflenght != 0)
+					irad /= (double)counteroflenght;
+				irad = 16 / (irad + 1e-6);
+				if (irad > 1000)irad = 1000;
+				kriteries[n] += irad;
+			}
 		}
 
+		double maxkrit = kriteries[0], minkrit = kriteries[0];
 
+		for (int n = 1; n < ch.size(); n++)
+		{
+			if (maxkrit < kriteries[n])maxkrit = kriteries[n];
+			if (minkrit > kriteries[n])minkrit = kriteries[n];
+		}
+
+		double summ = 0;
+
+		for (int n = 0; n < ch.size(); n++)
+		{
+			kriteries[n] = (kriteries[n] - minkrit) / (maxkrit - minkrit);
+			kriteries[n] = kriteries[n] * kriteries[n];
+			if (kriteries[n] < 0.1) kriteries[n] = 0;
+			summ += kriteries[n];
+		}
+
+		for (int n = 0; n < ch.size(); n++)
+			kriteries[n] /= summ;
+
+		int stx = 150;
+
+		for (int x = stx; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) for (int z = VoxelZ - 1; z <= 0; z--) if(voxel.USGet(x, y, z) > 0)
+		{
+			double TZ = 0;
+			for (int n = 0; n < ch.size(); n++)
+			{
+				#define trpcount 4
+				int points[trpcount];
+				double rads[trpcount + 1], r, k = 0, w;
+				rads[0] = 0;
+				for (int h = 0; h < trpcount; h++)
+				{
+					rads[h + 1] = 1e20;
+					for (int i = 0; i < chsizes[n]; i++)
+					{
+						r = (correct[n][i].x - x * VoxelS) * (correct[n][i].x - x * VoxelS) + (correct[n][i].y - y * VoxelS) * (correct[n][i].y - y * VoxelS) + (correct[n][i].z - z * VoxelS) * (correct[n][i].z - z * VoxelS);
+						if (r > rads[h] && r < rads[h + 1])
+						{
+							rads[h + 1] = r;
+							points[h] = i;
+						}
+					}
+				}
+				r = 0;
+				for (int h = 0; h < trpcount; h++)
+				{
+					rads[h] = sqrt(rads[h + 1]);
+					w = exp(-rads[h] / (150));
+					r += correct[n][points[h]].z * w;
+					k += w;
+				}
+				r /= k;
+				TZ += r / VoxelS * koof[n];
+			}
+
+			if (TZ > z)
+			{
+				for (int i = z; i < TZ + 1; i++)
+					voxel.Get(x, y, i) = 1;
+			}
+			if (TZ < z)
+			{
+				for (int i = TZ + 1; i <= z; i++)
+					voxel.Get(x, y, i) = 0;
+			}
+		}
 
 		for (int i = 0; i < ch.size(); i++)
 		{
@@ -1550,11 +1754,6 @@ namespace fsl
 		}
 		correct.clear();
 		delete[]kriteries;
-		delete[]dxs;
-		delete[]dys;
-		delete[]ss;
-		delete[]sys;
-		delete[]fis;
 	}
 
 	void BestTop()
