@@ -2064,9 +2064,134 @@ namespace fsl
 		{
 			LegLeo[i].x = xTbb + LegLeo[i].x * co - LegLeo[i].y * si;
 			LegLeo[i].y = yTbb + LegLeo[i].x * si + LegLeo[i].y * co;
-			LegLeo[i].x = LegLeo[i].x * 2;
-			LegLeo[i].y = LegLeo[i].y * 2;
-			LegLeo[i].z = LegLeo[i].z * 2;
+		}
+
+		double LmaxX = LegLeo[0].x, LminX = LegLeo[0].x, LmaxY = LegLeo[0].y, LminY = LegLeo[0].y;
+
+		for (int i = 1; i < lLen; i++)
+		{
+			if (LegLeo[i].x > LmaxX) LmaxX = LegLeo[i].x;
+			if (LegLeo[i].x < LminX) LminX = LegLeo[i].x;
+			if (LegLeo[i].y > LmaxY) LmaxY = LegLeo[i].y;
+			if (LegLeo[i].y < LminY) LminY = LegLeo[i].y;
+		}
+
+		for (int z = 40 * VoxelS; z < VoxelZ; z++)
+		{
+			Vector3 Cen;
+			double k = LminX + 0.6 * (LmaxX - LminY);
+			int l = 0;
+			for (int i = 0; i < lLen; i++) if (LegLeo[i].x < k && (LegLeo[i].z - k * VoxelS) < 5)
+			{
+				Cen = Cen + LegLeo[i];
+				l++;
+			}
+			Cen = Cen / l;
+
+			for (int x = -13; x <= 13; x++)for (int y = -13; y <= 13; y++) if (x*x + y * y < 13 * 13) voxel.Get(Cen.x + x, Cen.y + y, z) = 1;
+
+			l = 360 / 6;
+			int big = 360 * 4;
+
+			double *voxelr = new double [big], *leor = new double[big];
+
+			int del = big / l;
+
+			for (int a = 0; a < l; a++)
+			{
+				double alpha = a * 2 * PI / (l);
+				double co = cos(alpha), si = sqrt(1 - co * co), maxr = 0, tr;
+				int oldx = Cen.x, oldy = Cen.y, x, y;
+				for (int r = 1; r < 200; r++)
+				{
+					x = Cen.x + r * co;
+					y = Cen.y + r * si;
+					if (x == oldx && y == oldy) continue;
+					else
+					{
+						if (x < 0 || x >= VoxelX || y < 0 || y >= VoxelY) break;
+						if (voxel.USGet(x, y, z) == 0) break;
+						tr = (Cen.x - x) * (Cen.x - x) + (Cen.y - y) * (Cen.y - y);
+						if (tr > maxr) maxr = tr;
+					}
+
+				}
+				voxelr[a * del] = maxr;
+
+				double bestr2 = 15;
+				double KritB = 1e20;
+				for (int i = 0; i < lLen; i++) if (LegLeo[i].x < k && (LegLeo[i].z - k * VoxelS) < 5)
+				{
+					double r = (LegLeo[i].x - Cen.x) / (LegLeo[i].y - Cen.y);
+					double beta = (abs(r) > 1000) ? r / abs(r) * PI / 2 : atan(r);
+					if (LegLeo[i].x - Cen.x < 0) a += PI / 2;
+					if (beta - alpha < 1/18*PI)
+					{
+						r = sqrt((LegLeo[i].x - Cen.x) * (LegLeo[i].x - Cen.x) + (LegLeo[i].y - Cen.y) * (LegLeo[i].y - Cen.y));
+						double gamma = (r > 0) ? atan((LegLeo[i].z - z) / r) : 0;
+						if ((LegLeo[i].x - Cen.x) < 0) gamma += PI;
+						gamma = gamma * gamma + 4 * r * r;
+						if (gamma < KritB)
+						{
+							bestr2 = r;
+							KritB = gamma;
+						}
+					}
+				}
+
+				leor[a * del] = bestr2;
+
+				if (a != 0)
+				{
+					for (int h = 1; h < del; h++)
+					{
+						voxelr[(a - 1) * del + h] = voxelr[(a - 1) * del] + h / (double)del * (voxelr[(a)* del] - voxelr[(a - 1) * del]);
+						leor[(a - 1) * del + h] = leor[(a - 1) * del] + h / (double)del * (leor[(a)* del] - leor[(a - 1) * del]);
+					}
+				}
+				if (a == l - 1)
+				{
+					for (int h = 1; h < del; h++)
+					{
+						voxelr[(a)* del + h] = voxelr[(a)* del] + h / (double)del * (voxelr[0] - voxelr[(a)* del]);
+						leor[(a)* del + h] = leor[(a)* del] + h / (double)del * (leor[0] - leor[(a)* del]);
+					}
+				}
+			}
+			double r1 = 0, r2 = 0, r3 = 0, maxr = 0;
+			for (int i = 0; i < big; i++)
+			{
+				r1 += voxelr[i];
+				r2 += leor[i];
+				r3 += abs(voxelr[i] - leor[i]);
+				if (maxr < voxelr[i])maxr = voxelr[i];
+				if (maxr < leor[i])maxr = leor[i];
+
+			}
+
+			double KO = 1 - exp(-0.4*sqrt(abs(r3 / ((r1 + r2) / 2 + 1e-20))));
+			// Закладываем закономерность в радиус
+			double KF = (1 - 1 / (1 + exp((k - 70) / 12))) / 0.92414;
+			KF = KF + (1 - KF)*KO;
+			double dx = Cen.x, dy = Cen.y;
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) voxel.Get(Cen.x + x, Cen.y + y, z) = 0;
+
+			for (int x = 0; x < VoxelX; x++, dx = Cen.x - x)for (int y = 0; y < VoxelY; y++, dy = (Cen.y - y)) if(dx * dx + dy * dy < maxr * maxr + 1)
+			{
+				double tg = (dx > 0) ? dy / dx : 1e20;
+				double alpha = atan(tg); if (dx < 0) alpha += PI;
+				int betak = alpha * big / (2 * PI);
+				while (betak >= big) betak -= big;
+				double r = voxelr[betak] + (leor[betak] - voxelr[betak]) * KF;
+				r = r * r;
+				if (r > dx * dx + dy * dy)
+				{
+					voxel.USGet(x, y, z) = 1;
+				}
+			}
+
+			delete[]voxelr;
+			delete[]leor;
 		}
 
 		if (oribb = -1) Orientation = 1;
