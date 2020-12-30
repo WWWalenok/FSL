@@ -4,26 +4,26 @@
 namespace fsl
 {
 
-	uchar& Img::Get(int _x, int _y)
+	uch& Img::Get(int _x, int _y)
 	{
-		_x = (_x >= x) ? x - 1 : ((_x < 0) ? 0 : x);
-		_y = (_y >= y) ? y - 1 : ((_y < 0) ? 0 : y);
+		_x = (_x >= x) ? x - 1 : ((_x < 0) ? 0 : _x);
+		_y = (_y >= y) ? y - 1 : ((_y < 0) ? 0 : _y);
 		return val[_x + x * _y];
 	}
 
-	void Img::Set(int _x, int _y, uchar value)
+	void Img::Set(int _x, int _y, uch value)
 	{
-		_x = (_x >= x) ? x - 1 : ((_x < 0) ? 0 : x);
-		_y = (_y >= y) ? y - 1 : ((_y < 0) ? 0 : y);
+		_x = (_x >= x) ? x - 1 : ((_x < 0) ? 0 : _x);
+		_y = (_y >= y) ? y - 1 : ((_y < 0) ? 0 : _y);
 		val[_x + x * _y] = value;
 	}
 
-	uchar& Img::USGet(int _x, int _y)
+	uch& Img::USGet(int _x, int _y)
 	{
 		return val[_x + x * _y];
 	}
 
-	void Img::USSet(int _x, int _y, uchar value)
+	void Img::USSet(int _x, int _y, uch value)
 	{
 		val[_x + x * _y] = value;
 	}
@@ -50,7 +50,7 @@ namespace fsl
 		Clear();
 	}
 
-	Img::Img(int x, int y, unsigned char* frame, int oor = 0)
+	Img::Img(int x, int y, unsigned char* frame, int oor)
 	{
 		Img::x = x;
 		Img::y = y;
@@ -59,17 +59,19 @@ namespace fsl
 		for (int i = 0; i < x; i++) for (int j = 0; j < y; j++) val[i + x * j] = frame[i + x * j];
 	}
 
-	Img::Img(int x, int y, unsigned char** frame, int oor = 0)
+	Img::Img(int x, int y, unsigned char** frame, int oor)
 	{
-		Img::x = x;
-		Img::y = y;
+
 		l = x * y;
 		val = new unsigned char[l];
 		for (int i = 0; i < x; i++) for (int j = 0; j < y; j++) val[i + x * j] = frame[i][j];
+		Img::x = x;
+		Img::y = y;
 	}
 
-	Img::~Img()
+	/*Img::~Img()
 	{
-		delete[] val;
-	}
+		if(val != nullptr)
+			delete[] val;
+	}*/
 }

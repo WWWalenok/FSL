@@ -39,8 +39,8 @@ namespace fsl
 		voxel = new unsigned char[x * y * z];
 	}
 
-	Voxel::~Voxel()
+	/*Voxel::~Voxel()
 	{
 		delete[] voxel;
-	}
+	}*/
 }

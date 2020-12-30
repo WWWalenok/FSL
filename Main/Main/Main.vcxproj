@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClCompile Include="FSL.cpp" />
     <ClCompile Include="Img.cpp" />
+    <ClCompile Include="Temp.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="Vectors.cpp" />
     <ClCompile Include="Voxel.cpp" />

@@ -17,8 +17,8 @@ namespace fsl
 #define pointsDeep 3
 
 #define random rand() / (double)RAND_MAX
-
-#define uchar unsigned char
+#undef uch
+#define uch unsigned char
 
 	struct Vector3
 	{
@@ -109,23 +109,25 @@ namespace fsl
 	{
 	public:
 
-		uchar& Get(int _x, int _y);
+		uch& Get(int _x, int _y);
 
-		void Set(int _x, int _y, uchar value);
+		void Set(int _x, int _y, uch value);
 
-		uchar& USGet(int _x, int _y);
+		uch& USGet(int _x, int _y);
 
-		void USSet(int _x, int _y, uchar value);
+		void USSet(int _x, int _y, uch value);
 
-		void Clear() { for (int i = 0; i < l; i++) val[i] = 0; }
+		void Clear();
 
-		int X() { return x; }
+		int X();
 
-		int Y() { return y; }
+		int Y();
 
-		int L() { return l; }
+		int L();
 
 		unsigned char *&Value();
+
+		//Img(const Img & copy);
 
 		Img(int x, int y);
 
@@ -133,7 +135,6 @@ namespace fsl
 
 		Img(int x, int y, unsigned char** frame, int oor = 0);
 
-		~Img();
 	private:
 
 		unsigned char *val;
@@ -153,19 +154,54 @@ namespace fsl
 		unsigned char &USGet(int x, int y, int z);
 		void USSet(int x, int y, int z, unsigned char value);
 		Voxel(int x, int y, int z);
-		~Voxel();
+
 	};
 
 	struct PhisicPoint
 	{
 		Vector2 loc, v, dv;
 	};
-
 	
 	void InitEtalon(std::vector<Vector3*> _male, std::vector<int> _malesizes, std::vector<Vector3*> _female, std::vector<int> _femalesizes);
 
 	void InitFrame(int inframecount, unsigned char ***inframes, int frameX, int frameY);
 
-
 	void Run();
+
+	void GetCamPos(int);
+
+	void GetFirsCamPos();
+
+	void GetNewCamPos();
+
+	void Prepare();
+
+	void GetBestedBorder();
+
+	void GetBorderDisp_new();
+
+	void GetBorderDisp();
+
+	void GetFirstVoxel();
+
+	void GetFoot();
+
+	void GetBestVoxel();
+
+	void Out();
+
+	void UpdateOreint();
+
+	void ClearVoxel();
+
+	void BestStopa();
+
+	void BestTop();
+
+	void Centrovka();
+
+	void MakeKakScaner();
+
+	void Podgonka();
+
 }

@@ -21,7 +21,7 @@ namespace fsl
 
 	Vector3 Vector3::operator +(Vector3 a) { return Vector3(a.x + x, a.y + y, a.z + z); }
 
-	Vector3 Vector3::operator -(Vector3 a) { return Vector3(a.x - x, a.y - y, a.z - z); }
+	Vector3 Vector3::operator -(Vector3 a) { return Vector3(-a.x + x, -a.y + y, -a.z + z); }
 
 	Vector3 Vector3::operator *(double a) { return Vector3(x * a, y * a, z * a); }
 
