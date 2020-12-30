@@ -80,7 +80,7 @@ namespace fsl
 
 	void Vector2::SetLenght(double d)
 	{
-		d = d / GetLenght();
+		if(x != 0 && y != 0) d = d / GetLenght();
 		x *= d;
 		y *= d;
 	}

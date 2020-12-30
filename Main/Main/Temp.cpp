@@ -188,3 +188,38 @@
 	//	focuss[u] = lamda;
 	//	cams[u][0] = O; cams[u][1] = X; cams[u][2] = Y; cams[u][3] = Z;
 	//}
+
+/*
+
+					double fi = 0;
+					double k = 1;
+					bool isCorner = false;
+					V2 = (points[i2].loc + points[i0].loc) * 0.5;
+					V2 = V2 - points[i1].loc;
+					Y = points[i2].loc - points[i0].loc;
+					if (Y.x == 0 && Y.y == 0) Y = points[i1].loc * -1;
+					Y.SetLenght(1);
+					X = (!Y) * -1;
+					for (int i = -3; i < 4; i++)
+					{
+						V1 = points[i1].loc + X * ots[abs(i)] * ((i > 0) ? 1 : -1);
+						t = imgs[u].Get((int)V1.x, (int)V1.y);
+						buff[i + 3] = (t);
+					}
+					if (((points[i2].loc.x - points[i0].loc.x)*(points[i1].loc.y - points[i0].loc.y) - (points[i2].loc.y - points[i0].loc.y)*(points[i1].loc.x - points[i0].loc.x)) > 0) k = -1; else k = 1;
+					for (int i = 0; i < 4; i++)if (i != deadline) if (abs(lineK[i][0] * points[i1].loc.x + lineK[i][1] * points[i1].loc.y + lineK[i][2]) < 30) isCorner = true;
+					if (!isCorner)
+						fi = g * (0.6 * (buff[2] - 2 * buff[3] + buff[4]) + 0.25 * (buff[1] - 2 * buff[3] + buff[5]) + 0.15 * (buff[0] - 2 * buff[3] + buff[6]))*k;
+					if (abs(buff[0] - buff[4]) + abs(buff[1] - buff[5]) + abs(buff[0] - buff[6]) < 40 * 3) if (buff[1] < 40 && buff[5] < 40) fi += 1500 * k;
+					//points[i1].dv = V2 * fi + V3 * 5.0;
+					V1 = points[i2].loc - points[i1].loc;
+					V2 = points[i0].loc - points[i1].loc;
+					V3 = (points[i2].v - points[i1].v * 2 + points[i0].v);
+					r = V1.GetLenght();
+					V4 = Vector2(0, 0);
+					if (r != 0) V4 = V1 * -c * (r - rmid) / r;
+					r = V2.GetLenght();
+					if (r != 0) V4 = V4 + V2 * -c * (r - rmid) / r;
+					points[i1].dv = points[i1].dv + V4 + V3 * d;
+
+*/

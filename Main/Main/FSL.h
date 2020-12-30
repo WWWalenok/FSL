@@ -159,7 +159,7 @@ namespace fsl
 
 	struct PhisicPoint
 	{
-		Vector2 loc, v, dv;
+		Vector2 loc, v, a;
 	};
 	
 	void InitEtalon(std::vector<Vector3*> _male, std::vector<int> _malesizes, std::vector<Vector3*> _female, std::vector<int> _femalesizes);

@@ -1659,7 +1659,8 @@ namespace fsl
 	{
 		double r, te;
 		Vector3 P, A, B, C, D;
-		Vector2 Ko, Te, Li, V1, V2, V3, V4, V5, X, Y;
+		Vector2 Ko, Te, Li;
+		Vector2 M, V1, V2, DinV, R1, R2, R3, R4, X, Y;
 		for (int u = 0; u < framecount; u++)
 		{
 #ifdef GetFootDebug
@@ -1721,7 +1722,7 @@ namespace fsl
 				C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i + 2];
 				D = lists[u][(i + 3 > 3) ? i + 3 - 4 : i + 3];
 				for (int k = 0; k < 50; k++)
-					points[i * 50 + k].loc = Vector2(A.x * (1 - k / 50.0) + B.x * (k / 50.0), A.y * (1 - k / 50.0) + B.y * (k / 50.0));
+					points[i * 50 + k].loc = Vector2(A.x * (1 - k / 50.0) + B.x * (k / 50.0) + (1 - 2 * random) * 0.1, A.y * (1 - k / 50.0) + B.y * (k / 50.0) + (1 - 2 * random) * 0.1);
 				P = B - A; P.SetLenght(1);
 				lineK[i][0] = P.y;
 				lineK[i][1] = -P.x;
@@ -1736,17 +1737,18 @@ namespace fsl
 			int freez = 0;
 			for (int i = 0; i < 200; i++)
 			{
+				//+(1 - 2 * random) * 0.2;
 				Te = Ko - points[i].loc;
-				points[i].v.x = 0;
-				points[i].v.y = 0;
-				points[i].dv.x = 0;
-				points[i].dv.y = 0;
 				t = Te * Te;
 				if (t < min)
 				{
 					min = t;
 					freez = i;
 				}
+				points[i].v.x = 0;
+				points[i].v.y = 0;
+				points[i].a.x = 0;
+				points[i].a.y = 0;
 			}
 			points[freez].loc = Ko;
 
@@ -1763,11 +1765,11 @@ namespace fsl
 			cv::waitKey(1);
 #endif // GetFootDebug
 
-			double c = 1150, d = 30, dt = 0.001, g = 50, rmids = ((A - B).GetLenght() + (B - C).GetLenght() + (C - D).GetLenght() + (D - A).GetLenght()) / 2.0, _x, _y;
-			double ots[4]{ 0,5,13,25 }, val, w1 = 0.6, w2 = 0.25, w3 = 0.15;
+			double c = 1150, d = 30, dt = 0.01, g = 50, rmids = ((A - B).GetLenght() + (B - C).GetLenght() + (C - D).GetLenght() + (D - A).GetLenght()) / 2.0, _x, _y;
+			double ots[4]{ 0,5,13,25 }, w1 = 0.6, w2 = 0.25, w3 = 0.15;
 			int buff[7];
-			double mtime = 100000;
-			int diskount = 1;
+			double mtime = 10000;
+			int diskount = mtime / 20;
 			for (int time = 0; time < mtime; time++)
 			{
 #ifdef GetFootDebug
@@ -1776,51 +1778,45 @@ namespace fsl
 					d2 = d1.clone();
 				}
 #endif // GetFootDebug
-				double kv = 3 + 30 * (t/mtime)* (t / mtime);
-				val = 0.9 * (1 - time / mtime) + 0.1;
-				double  rmid = (0.00156*rmids*(1 - t / mtime) + 0.4) * 0.47;
-				val = 0.75 * (1 - time / mtime) + 0.25;
-				for (int i = 1; i < 200; i++) { points[i].dv.x = 0; points[i].dv.y = 0; }
+				double kv = 3 + 30.0 * (time / mtime)* (time / mtime);
+				double  rmid = (0.00156*rmids*(1 - time / mtime) + 0.4) * 0.47;
+				//rmid = 0;
+				for (int i = 1; i < 200; i++) { points[i].a.x = 0; points[i].a.y = 0; }
+				double k = 0, fi = 0, r1, r2, r3, r4;
+				bool isCorner;
 				for (int i_ = 200 - 2, i0 = 200 - 1, i1 = 0, i2 = 1, i3 = 2; i1 < 200; i1++, i2 = (i2 == 200 - 1) ? 0 : i2 + 1, i0 = (i0 == 200 - 1) ? 0 : i0 + 1, i_ = (i_ == 200 - 1) ? 0 : i_ + 1, i3 = (i3 == 200 - 1) ? 0 : i3 + 1)
 				{
-					double fi = 0;
-					double k = 1;
-					bool isCorner = false;
-					V2 = (points[i2].loc + points[i0].loc) * 0.5;
-					V2 = V2 - points[i1].loc;
-					Y = points[i2].loc - points[i0].loc;
-					if (Y.x == 0 && Y.y == 0) Y = points[i1].loc * -1;
-					Y.SetLenght(1);
-					X = (!Y) * -1;
+					M = (points[i0].loc + points[i2].loc) * 0.5;
+					X = points[i1].loc - M;
+					if (X.x != 0 && X.y != 0); X.SetLenght(1);
+					DinV.x = (points[i0].v.x + points[i2].v.x - points[i1].v.x * 2.0);
+					DinV.y = (points[i0].v.y + points[i2].v.y - points[i1].v.y * 2.0);
 					for (int i = -3; i < 4; i++)
 					{
 						V1 = points[i1].loc + X * ots[abs(i)] * ((i > 0) ? 1 : -1);
-						t = imgs[u].Get((int)V1.x, (int)V1.y);
-						buff[i + 3] = (t);
+						buff[i + 3] = imgs[u].Get((int)V1.x, (int)V1.y);
 					}
 					if (((points[i2].loc.x - points[i0].loc.x)*(points[i1].loc.y - points[i0].loc.y) - (points[i2].loc.y - points[i0].loc.y)*(points[i1].loc.x - points[i0].loc.x)) > 0) k = -1; else k = 1;
-					for (int i = 0; i < 4; i++)if (i != deadline) if (abs(lineK[i][0] * points[i1].loc.x + lineK[i][1] * points[i1].loc.y + lineK[i][2]) < 30) isCorner = true;
+					isCorner = false; if(time < mtime / 8) for (int i = 0; i < 4; i++) if (abs(lineK[i][0] * points[i1].loc.x + lineK[i][1] * points[i1].loc.y + lineK[i][2]) < 6) isCorner = true;
 					if (!isCorner)
 						fi = g * (0.6 * (buff[2] - 2 * buff[3] + buff[4]) + 0.25 * (buff[1] - 2 * buff[3] + buff[5]) + 0.15 * (buff[0] - 2 * buff[3] + buff[6]))*k;
 					if (abs(buff[0] - buff[4]) + abs(buff[1] - buff[5]) + abs(buff[0] - buff[6]) < 40 * 3) if (buff[1] < 40 && buff[5] < 40) fi += 1500 * k;
-					//points[i1].dv = V2 * fi + V3 * 5.0;
-					V1 = points[i2].loc - points[i1].loc;
-					V2 = points[i0].loc - points[i1].loc;
-					V3 = (points[i2].v - points[i1].v * 2 + points[i0].v);
-					r = V1.GetLenght();
-					V4 = Vector2(0, 0);
-					if (r != 0) V4 = V1 * -c * (r - rmid) / r;
-					r = V2.GetLenght();
-					if (r != 0) V4 = V4 + V2 * -c * (r - rmid) / r;
-					points[i1].dv = points[i1].dv + V4 + V3 * d;
-
+					points[i1].a = X * fi + DinV * 5;
+					R1 = (points[i0].loc - points[i1].loc); r1 = R1.GetLenght() + 1e-20;
+					R2 = (points[i2].loc - points[i1].loc); r2 = R2.GetLenght() + 1e-20;
+					//R3 = (points[i_].loc - points[i1].loc); r3 = R3.GetLenght() + 1e-20;
+					//R4 = (points[i3].loc - points[i1].loc); r4 = R4.GetLenght() + 1e-20;
+					//points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2 + R3.x * (rmid * 1.9 - r3) / r3 * 0.25 + R4.x * (rmid * 1.9 - r4) / r4 * 0.25) + d * DinV.x - kv * points[i1].v.x;
+					//points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2 + R3.y * (rmid * 1.9 - r3) / r3 * 0.25 + R4.y * (rmid * 1.9 - r4) / r4 * 0.25) + d * DinV.y - kv * points[i1].v.y;
+					points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i1].v.x;
+					points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i1].v.y;
 				}
 				double ddt = dt * dt * 0.5;
 				for (int i1 = 0; i1 < 200; i1++) if (i1 != freez)
 				{
 
-					points[i1].loc = points[i1].loc + points[i1].v * dt + points[i1].dv * ddt;
-					points[i1].v = points[i1].v + points[i1].dv * dt;
+					points[i1].loc = points[i1].loc + points[i1].v * dt + points[i1].a * ddt;
+					points[i1].v = points[i1].v + points[i1].a * dt;
 					if (i1 == 0)
 						i1 = 0;
 				}
@@ -1835,7 +1831,7 @@ namespace fsl
 							d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
 						}
 					cv::imshow("GetFootDebug", d2);
-					cv::waitKey();
+					cv::waitKey(1);
 				}
 #endif // GetFootDebug
 			}
@@ -1845,8 +1841,8 @@ namespace fsl
 			{
 				points[i1 * 2] = points[i1];
 				points[i1 * 2 + 1].loc = (T.loc + points[i1 * 2].loc) * 0.5;
-				points[i1 * 2].v.x = 0; points[i1 * 2].v.y = 0; points[i1 * 2].dv.x = 0; points[i1 * 2].dv.x = 0;
-				points[i1 * 2 + 1].v.x = 0; points[i1 * 2 + 1].v.y = 0; points[i1 * 2 + 1].dv.x = 0; points[i1 * 2 + 1].dv.x = 0;
+				points[i1 * 2].v.x = 0; points[i1 * 2].v.y = 0; points[i1 * 2].a.x = 0; points[i1 * 2].a.x = 0;
+				points[i1 * 2 + 1].v.x = 0; points[i1 * 2 + 1].v.y = 0; points[i1 * 2 + 1].a.x = 0; points[i1 * 2 + 1].a.x = 0;
 				T = points[i1 * 2];
 			}
 			double rad[61][3];
@@ -1953,29 +1949,13 @@ namespace fsl
 			Li = (Li + Ko) * 0.5;
 			for (int i1 = 0, i2 = 1; i1 < 400; i1++, i2 = (i2 == 400 - 1) ? 0 : i2 + 1)
 			{
-				V1 = points[i2].loc - points[i1].loc;
-				r = abs(V1.x);
-				V1 = V1 / r;
-				V2 = points[i1].loc;
-				r = (int)r + 1;
-				for (int i = 0; i <= r; i++)
-				{
-					counter[u].Set((int)V2.x, (int)V2.y, 255);
-					V2 = V2 + V1;
-				}
-			}
-			for (int i1 = 0, i2 = 2; i1 < 400; i1++, i2 = (i2 == 400 - 1) ? 0 : i2 + 1)
-			{
-				V1 = points[i2].loc - points[i1].loc;
-				r = abs(V1.x);
-				V1 = V1 / r * 0.2;
-				V2 = points[i1].loc;
-				r = (int)r + 1;
-				for (int i = 0; i <= r * 5; i++)
-				{
-					counter[u].Set((int)V2.x, (int)V2.y, 255);
-					V2 = V2 + V1;
-				}
+				V1 = points[i1].loc;
+				V2 = points[i2].loc;
+				r = (V1 - V2).GetLenght();
+				r = r * 3; r = (int)r;
+				if (r == 0) r = 1;
+				for (int i = -1; i <= r + 1; i++)		
+					counter[u].Set((int)(V1.x * i / r + V2.x * (1 - i / r)), (int)(V1.y * i / r + V2.y * (1 - i / r)), 255);
 			}
 			counter[u].Set((int)Li.x, (int)Li.y, 100);
 #ifdef GetFootDebug
@@ -1995,7 +1975,7 @@ namespace fsl
 			{
 				for (int n1 = 0; n1 < 2; n1++)for (int n2 = 0; n2 < 2; n2++)if (count != 0)
 				{
- 					count = 0;
+					count = 0;
 					for (int k1 = 1, x = (n1 == 0) ? k1 : immaxX - 1 - k1; k1 < immaxX - 1; k1++, x = (n1 == 0) ? k1 : immaxX - 1 - k1) for (int k2 = 1, y = (n2 == 0) ? k2 : immaxY - 1 - k2; k2 < immaxY - 1; k2++, y = (n2 == 0) ? k2 : immaxY - 1 - k2)
 					{
 						if (counter[u].Get(x, y) == 0)
@@ -2034,6 +2014,9 @@ namespace fsl
 			}
 			cv::imshow("GetFootDebugContur", d3);
 			cv::waitKey();
+			cv::imwrite("E:\\Temp\\Out\\GetFootDebugC" + std::to_string(u)+ ".jpg", d3);
+			cv::imwrite("E:\\Temp\\Out\\GetFootDebug" + std::to_string(u) + ".jpg", d2);
+			cv::imwrite("E:\\Temp\\Out\\GetFootDebugOrig" + std::to_string(u) + ".jpg", d1);
 #endif // GetFootDebug
 		}
 	}
@@ -3255,7 +3238,7 @@ namespace fsl
 		cv::waitKey(1);
 
 #endif // M1
-	}
+		}
 
 	void InitUserStat(bool male)
 	{
@@ -3298,7 +3281,7 @@ namespace fsl
 
 #endif // M1
 #endif // DEBUG
-}
+		}
 
 	void InitEtalon(std::vector<Vector3*> _male, std::vector<int> _malesizes, std::vector<Vector3*> _female, std::vector<int> _femalesizes)
 	{
