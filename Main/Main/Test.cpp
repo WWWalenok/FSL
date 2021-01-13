@@ -31,19 +31,14 @@ int main()
 		}
 	}
 
-	fsl::InitFrame(1, imgs, maxx, maxy);
-
+	fsl::InitFrame(7, imgs, maxx, maxy);
 	fsl::Prepare();
-
 	fsl::GetFirsCamPos();
-
 	fsl::GetBestedBorder();
-
 	fsl::GetNewCamPos();
-
 	fsl::GetBorderDisp();
-
 	fsl::UpdateOreint();
-
 	fsl::GetFoot();
+	fsl::GetFirstVoxel();
+	fsl::BestTop();
 };

@@ -9,9 +9,9 @@ namespace fsl
 {
 
 #define PI 3.141592653589793
-#define VoxelX 400
-#define VoxelY 256
-#define VoxelZ 256
+#define VoxelX 360
+#define VoxelY 160
+#define VoxelZ 200
 #define VoxelS 1.0
 #define pointsDisp 16
 #define pointsDeep 3
