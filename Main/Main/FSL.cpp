@@ -22,9 +22,11 @@
 
 #define _GetFootDebug
 
-#define GetFirstVoxelDebug
+#define _GetFirstVoxelDebug
 
-#define BestTopDebug
+#define _BestTopDebug
+
+#define BestStopaDebug
 
 #endif // DebugConsole
 
@@ -57,23 +59,53 @@ namespace fsl
 {
 #pragma region Local / Global Vars
 
+#pragma region Macross
+	float sint[UINT16_MAX]{-1000};
+#define SIN_UP 10430.378350470452724949566316381
+#define TO_COS 0x4000ui16
+#define t_sin(x) ((x > 0) ? sint[(uint16_t)((double)x * SIN_UP)] : -sint[(uint16_t)((double)-x * SIN_UP)])
+#define t_cos(x) ((x > 0) ? sint[(uint16_t)((double)x * SIN_UP - TO_COS)] : sint[(uint16_t)((double)-x * SIN_UP + TO_COS)])
 
-	double min(double a, double b) { return (a > b) ? b : a; }
-	double max(double a, double b) { return (a < b) ? b : a; }
-	double K, devia[8]{ 0,0,0,0,0,0,0,0 };
-	Voxel voxel(0, 0, 0);
+#define ToCam(point, cam0, cam1, cam2, cam3, f, K)\
+{ \
+	point.x += cam0.x; point.y += cam0.y; point.z += cam0.z;\
+	double r = (point.x * cam3.x + point.y * cam3.y + point.z * cam3.z) * K / f;\
+	point = Vector3((point.x * cam1.x + point.y * cam1.y + point.z * cam1.z) / r + immaxX / 2, (point.x * cam2.x + point.y * cam2.y + point.z * cam2.z) / r + immaxY / 2, f / K);\
+}\
 
-	std::vector<Img> imgs, blurred, counter;
+#pragma endregion
+
+#pragma region Voxel
+	unsigned char *voxelbase = new unsigned char[VoxelX * VoxelY * VoxelZ];
+#define GetVoxel(x,y,z) voxelbase[((x < 0) ? 0 : ((x > VoxelX - 1) ? VoxelX - 1 : x)) * VoxelY * VoxelZ + ((y < 0) ? 0 : ((y > VoxelY - 1) ? VoxelY - 1 : y)) * VoxelZ + ((z < 0) ? 0 : ((z > VoxelZ - 1) ? VoxelZ - 1 : z))]
+#define USGetVoxel(x,y,z) voxelbase[x * VoxelY * VoxelZ + y * VoxelZ + z]
+#pragma endregion
 
 	int framecount, immaxX, immaxY, *usedCamera, *oreint;
 
-	std::vector<Vector3*> cams = std::vector<Vector3*>(), lists, foots, inworld;
-	std::vector<double> focuss;
+#pragma region Frames
+	std::vector<unsigned char**> imgs, blurred, counter;
 
-	std::vector<double***> listsborder;
+#define Add_imgs {unsigned char** _temp = new unsigned char*[immaxX]; for(int _ti= 0; _ti < immaxX; _ti++) {_temp[_ti] = new unsigned char[immaxY]; for(int _tj= 0; _tj < immaxY; _tj++) _temp[_ti][_tj] = 0;} imgs.push_back(_temp);}
+#define Add_blurred {unsigned char** _temp = new unsigned char*[immaxX]; for(int _ti= 0; _ti < immaxX; _ti++) {_temp[_ti] = new unsigned char[immaxY]; for(int _tj= 0; _tj < immaxY; _tj++) _temp[_ti][_tj] = 0;} blurred.push_back(_temp);}
+#define Add_counter {unsigned char** _temp = new unsigned char*[immaxX]; for(int _ti= 0; _ti < immaxX; _ti++)  {_temp[_ti] = new unsigned char[immaxY]; for(int _tj= 0; _tj < immaxY; _tj++) _temp[_ti][_tj] = 0;} counter.push_back(_temp);}
+#define GetI(x,y) [(int)((x < 0) ? 0 : ((x > immaxX - 1) ? immaxX - 1 : x))][(int)((y < 0) ? 0 : ((y > immaxY - 1) ?immaxY - 1 : y))]
+#define USGetI(x,y) [x][y]
+#define SetI(x,y,v) [(int)((x < 0) ? 0 : ((x > immaxX - 1) ? immaxX - 1 : x))][(int)((y < 0) ? 0 : ((y > immaxY - 1) ?immaxY - 1 : y))] = v
+#define USSetI(x,y,v) [x][y] = v
+#pragma endregion
+
+
+	float K, devia[8]{ 0,0,0,0,0,0,0,0 };
+	Voxel voxel(0, 0, 0);
+
+	std::vector<Vector3*> cams = std::vector<Vector3*>(), lists, foots, inworld;
+	std::vector<float> focuss;
+
+	std::vector<float***> listsborder;
 
 	Vector3 *sphNoga, *Ks32, *Ks51;
-	double *sphNogaR;
+	float *sphNogaR;
 
 	std::vector<Vector3*> males, females;
 	std::vector<int> malesizes, femalesizes;
@@ -90,13 +122,72 @@ namespace fsl
 
 #pragma region Support function
 
-	void ToCam(Vector3 &base, int camnum)
+	float min_f(double a, double b) { return (a > b) ? b : a; }
+	float max_f(double a, double b) { return (a < b) ? b : a; }
+	float max_f(float a, float b)
 	{
-		base.x += cams[camnum][0].x; base.y += cams[camnum][0].y; base.z += cams[camnum][0].z;
-		double r = focuss[camnum] / K / (base * cams[camnum][3]);
-		base = Vector3(base * cams[camnum][1] * r + immaxX / 2, base * cams[camnum][2] * r + immaxY / 2, focuss[camnum] / K);
+		return (a > b) ? a : b;
 	}
-
+	float max_f(double a, float b)
+	{
+		return (a > b) ? a : b;
+	}
+	float max_f(float a, double b)
+	{
+		return (a > b) ? a : b;
+	}
+	float max_f(int a, float b)
+	{
+		return (a > b) ? a : b;
+	}
+	float max_f(float a, int b)
+	{
+		return (a > b) ? a : b;
+	}
+	float max_f(int a, double b)
+	{
+		return (a > b) ? a : b;
+	}
+	float max_f(double a, int b)
+	{
+		return (a > b) ? a : b;
+	}
+	float max_f(int a, int b)
+	{
+		return (a > b) ? a : b;
+	}
+	float min_f(float a, float b)
+	{
+		return (a < b) ? a : b;
+	}
+	float min_f(double a, float b)
+	{
+		return (a < b) ? a : b;
+	}
+	float min_f(float a, double b)
+	{
+		return (a < b) ? a : b;
+	}
+	float min_f(int a, float b)
+	{
+		return (a < b) ? a : b;
+	}
+	float min_f(float a, int b)
+	{
+		return (a < b) ? a : b;
+	}
+	float min_f(int a, double b)
+	{
+		return (a < b) ? a : b;
+	}
+	float min_f(double a, int b)
+	{
+		return (a < b) ? a : b;
+	}
+	float min_f(int a, int b)
+	{
+		return (a < b) ? a : b;
+	}
 #pragma endregion
 
 #pragma region Work with camera
@@ -107,14 +198,14 @@ namespace fsl
 		std::cout << "GetFirsCamPos " << std::endl;
 #endif // DEBUG
 		Vector3 s[2], b[2], bb[2]; // select, best, bestbest, median
-		double f, bf, bbf, a, ba, bba; // focus, angel
-		double Krit[5], KritB[5], KritBB[5];
-		double Krite[4], KriteB[4], KriteBB[4];
+		float f, bf, bbf, a, ba, bba; // focus, angel
+		float Krit[5], KritB[5], KritBB[5];
+		float Krite[4], KriteB[4], KriteBB[4];
 		unsigned char buff[pointsDisp][pointsDeep * 2 + 1];
 		Vector3 P, TA, TB, *A, *B, *C, *D;
-		double _x, _y;
+		float _x, _y;
 		int COUNT = 240000 / 350;
-		double tr = 17, tr2 = tr * 1, tr3 = tr * 1, w1 = 1, w2 = 0.7, w3 = 0.2, r, ra, rb;
+		float tr = 17, tr2 = tr * 1, tr3 = tr * 1, w1 = 1, w2 = 0.7, w3 = 0.2, r, ra, rb;
 		int t = 0;
 		for (int u = 0; u < framecount; u++)
 		{
@@ -125,10 +216,10 @@ namespace fsl
 #endif // DEBUG
 			for (int i = 0; i < 5; i++) KritBB[i] = -1e20;
 			for (int i = 0; i < 4; i++) KriteBB[i] = -1e20;
-			double G11i = -550, G12i = 550, G21i = -550, G22i = 550, G31i = 350, G32i = 700, G41i = -150, G42i = 150, G51i = -150, G52i = 150, G61i = 15, G62i = 60, G71i = (-180 - 40) / (180 * PI), G72i = (-180 + 40) / (180 * PI);
+			float G11i = -550, G12i = 550, G21i = -550, G22i = 550, G31i = 350, G32i = 700, G41i = -150, G42i = 150, G51i = -150, G52i = 150, G61i = 15, G62i = 60, G71i = (-180 - 40) / (180 * PI), G72i = (-180 + 40) / (180 * PI);
 			for (int E = 0; E < 350; E++)
 			{
-				double G11 = G11i, G12 = G12i, G21 = G21i, G22 = G22i, G31 = G31i, G32 = G32i, G41 = G41i, G42 = G42i, G51 = G51i, G52 = G52i, G61 = G61i, G62 = G62i, G71 = G71i, G72 = G72i;
+				float G11 = G11i, G12 = G12i, G21 = G21i, G22 = G22i, G31 = G31i, G32 = G32i, G41 = G41i, G42 = G42i, G51 = G51i, G52 = G52i, G61 = G61i, G62 = G62i, G71 = G71i, G72 = G72i;
 				b[0].x = ((G11 + G12) / 2.0);
 				b[0].y = ((G21 + G22) / 2.0);
 				b[0].z = ((G31 + G32) / 2.0);
@@ -157,15 +248,16 @@ namespace fsl
 					cam[2].SetLenght(1);
 					cam[1] = cam[3] / cam[2];
 					cam[1].SetLenght(1);
-					list[0] = Vector3(148.5, 105, devia[4]) + s[0];
-					list[1] = Vector3(-148.5, 105, devia[5]) + s[0];
-					list[2] = Vector3(-148.5, -105, devia[6]) + s[0];
-					list[3] = Vector3(148.5, -105, devia[7]) + s[0];
+					list[0] = Vector3(148.5, 105, devia[4]);
+					list[1] = Vector3(-148.5, 105, devia[5]);
+					list[2] = Vector3(-148.5, -105, devia[6]);
+					list[3] = Vector3(148.5, -105, devia[7]);
 					for (int i = 0; i < 4; i++)
 					{
-						r = list[i].x * cam[3].x + list[i].y * cam[3].y + list[i].z * cam[3].z;
-						list[i] = Vector3(list[i] * cam[1] / r, list[i] * cam[2] / r, 1); list[i] = list[i] * f / K;
-						list[i].x += immaxX / 2; list[i].y += immaxY / 2;
+						ToCam(list[i], cam[0], cam[1], cam[2], cam[3], f, K)
+						//list[i].x += cam[0].x; list[i].y += cam[0].y; list[i].z += cam[0].z;
+						//r = (list[i].x * cam[3].x + list[i].y * cam[3].y + list[i].z * cam[3].z) * K / f;
+						//list[i] = Vector3((list[i].x * cam[1].x + list[i].y * cam[1].y + list[i].z * cam[1].z) / r + immaxX / 2, (list[i].x * cam[2].x + list[i].y * cam[2].y + list[i].z * cam[2].z) / r + immaxY / 2, f / K);
 					}
 					P = (list[0] + list[1] + list[2] + list[3]) / 4.0;
 
@@ -176,7 +268,7 @@ namespace fsl
 						Krit[4] = 0;
 						for (int i = -1; i < 2; i++)for (int j = -1; j < 2; j++)
 						{
-							t = blurred[u].Get((int)P.x + 16 * i, (int)P.y + 16 * j);
+							t = blurred[u]GetI((int)P.x + 16 * i, (int)P.y + 16 * j);
 							if (t < 85) Krit[4]++;
 						}
 						if (Krit[4] < 8) Krit[4] = -1;
@@ -213,7 +305,7 @@ namespace fsl
 								P.x = TB.x * _x + TA.x * (1 - _x);
 								P.y = TB.y * _x + TA.y * (1 - _x);
 								if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
-									t = blurred[u].USGet((int)P.x, (int)P.y);
+									t = blurred[u]USGetI((int)P.x, (int)P.y);
 								else
 								{
 									t = -1;
@@ -248,13 +340,13 @@ namespace fsl
 						}
 					}
 
-					double Kr = 0;
+					float Kr = 0;
 					for (int i = 0; i < 4; i++) Kr += pow(abs(Krit[i]), 1 / 30.0);
 
 					if (Kr > KritB[4])
 					{
-						double avg = 0;
-						double k = 0;
+						float avg = 0;
+						float k = 0;
 						for (int x = 0; x < 8; x++)
 						{
 							_x = (x + 1) / (8 + 1.0);
@@ -264,7 +356,7 @@ namespace fsl
 								_y = (y + 1) / (8 + 1.0);
 								P = list[0] * (1 - _x)*(1 - _y) + list[1] * (_x)*(1 - _y) + list[2] * (_x)* (_y)+list[3] * (1 - _x)*(_y);
 								if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
-									avg += blurred[u].Get((int)P.x, (int)P.y);
+									avg += blurred[u]GetI((int)P.x, (int)P.y);
 								else
 									k = k - 1;
 							}
@@ -279,7 +371,7 @@ namespace fsl
 								_y = (y + 1) / (8 + 1.0);
 								P = list[0] * (1 - _x)*(1 - _y) + list[1] * (_x)*(1 - _y) + list[2] * (_x)* (_y)+list[3] * (1 - _x)*(_y);
 								if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
-									if (blurred[u].Get((int)P.x, (int)P.y) > avg)
+									if (blurred[u]GetI((int)P.x, (int)P.y) > avg)
 										bl++;
 									else
 										wt++;
@@ -351,7 +443,7 @@ namespace fsl
 					{
 						for (int y = 0; y < immaxY; y++)
 						{
-							d2.at<uch>(x, y) = blurred[u].USGet(x, y);
+							d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
 						}
 					}
 					for (int i = 0; i < 4; i++)
@@ -377,7 +469,7 @@ namespace fsl
 								P.x = TB.x * _x + TA.x * (1 - _x);
 								P.y = TB.y * _x + TA.y * (1 - _x);
 								if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
-									d2.at<uch>(max(min(P.x, immaxX - 1), 0), max(min(P.y, immaxY - 1), 0)) = (_y < 0) ? 255 : 0;
+									d2.at<uch>(max_f(min_f(P.x, immaxX - 1), 0), max_f(min_f(P.y, immaxY - 1), 0)) = (_y < 0) ? 255 : 0;
 							}
 						}
 					}
@@ -398,16 +490,15 @@ namespace fsl
 			cam[2].SetLenght(1);
 			cam[1] = cam[3] / cam[2];
 			cam[1].SetLenght(1);
-			list[0] = Vector3(148.5, 105, devia[4]) + cam[0];
-			list[1] = Vector3(-148.5, 105, devia[5]) + cam[0];
-			list[2] = Vector3(-148.5, -105, devia[6]) + cam[0];
-			list[3] = Vector3(148.5, -105, devia[7]) + cam[0];
+			list[0] = Vector3(148.5, 105, devia[4]);
+			list[1] = Vector3(-148.5, 105, devia[5]);
+			list[2] = Vector3(-148.5, -105, devia[6]);
+			list[3] = Vector3(148.5, -105, devia[7]);
 			for (int i = 0; i < 4; i++)
 			{
-				r = list[i] * cam[3];
-				list[i] = Vector3(list[i] * cam[1] / r, list[i] * cam[2] / r, 1);
-				list[i] = list[i] * bbf / K;
-				list[i].x += immaxX / 2; list[i].y += immaxY / 2;
+				ToCam(list[i], cam[0], cam[1], cam[2], cam[3], bbf, K)
+				//r = (list[i].x * cam[3].x + list[i].y * cam[3].y + list[i].z * cam[3].z) * bbf / K;
+				//list[i] = Vector3((list[i].x * cam[1].x + list[i].y * cam[1].y + list[i].z * cam[1].z) / r + immaxX / 2, (list[i].x * cam[2].x + list[i].y * cam[2].y + list[i].z * cam[2].z) / r + immaxY / 2, bbf / K);
 			}
 			lists.push_back(list);
 			cams.push_back(cam);
@@ -418,7 +509,7 @@ namespace fsl
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d2.at<uch>(x, y) = blurred[u].USGet(x, y);
+					d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
 				}
 			}
 			for (int i = 0; i < 4; i++)
@@ -444,7 +535,7 @@ namespace fsl
 						P.x = TB.x * _x + TA.x * (1 - _x);
 						P.y = TB.y * _x + TA.y * (1 - _x);
 						if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
-							d2.at<uch>(max(min(P.x, immaxX - 1), 0), max(min(P.y, immaxY - 1), 0)) = (_y < 0) ? 255 : 0;
+							d2.at<uch>(max_f(min_f(P.x, immaxX - 1), 0), max_f(min_f(P.y, immaxY - 1), 0)) = (_y < 0) ? 255 : 0;
 					}
 				}
 			}
@@ -457,17 +548,17 @@ namespace fsl
 	void GetCamPos(int u)
 	{
 		Vector3 AT, BT, CT, DT, O;
-		double t;
+		float t;
 		Vector3 A(lists[u][0].x, lists[u][0].y, 0), B(lists[u][1].x, lists[u][1].y, 0), C(lists[u][2].x, lists[u][2].y, 0), D(lists[u][3].x, lists[u][3].y, 0), R1(immaxX / 2.0, immaxY / 2.0, 0), R2, R3, R4;
 		A = (A - R1) * K; B = (B - R1) * K; C = (C - R1) * K; D = (D - R1) * K;
 		R1 = A - B;
 		R2 = B - C;
 		R3 = C - D;
 		R4 = D - A;
-		double a, b, c, d, d1, d2, l1, l2, dmax = 0;
-		double M[3][4], maxerr = 1e30;
-		double lamda = 50;
-		if (min(R1 * R1, R3 * R3) < min(R2 * R2, R4 * R4))
+		float a, b, c, d, d1, d2, l1, l2, dmax = 0;
+		float M[3][4], maxerr = 1e30;
+		float lamda = 50;
+		if (min_f(R1 * R1, R3 * R3) < min_f(R2 * R2, R4 * R4))
 		{
 			O = A;
 			A = B; B = C; C = D; D = O;
@@ -521,7 +612,7 @@ namespace fsl
 			d1 = R2.x;
 			d2 = R2.y;
 		}
-		double t1 = (297 + d1) / l1, t2 = (210 + d2) / l2;
+		float t1 = (297 + d1) / l1, t2 = (210 + d2) / l2;
 		d = (t1 + t2) / 2.0;
 		switch (rot)
 		{
@@ -597,14 +688,14 @@ namespace fsl
 			Vector3 *list = new Vector3[4];
 			Vector3 d[2];
 			Vector3 s[2], b[2], bb[2]{ Vector3(0,0,500), Vector3(0,0,0) }, m[2]; // select, best, bestbest, median
-			double f = 35, bf = 35, bbf = 35, a = 0, ba = 0, bba = 0, df, mf, da, ma, r; // focus, angel
+			float f = 35, bf = 35, bbf = 35, a = 0, ba = 0, bba = 0, df, mf, da, ma, r; // focus, angel
 
 			Vector3 se[2]{ Vector3(120, 120, 120), Vector3(60,60,0) }, P;
-			double fe = 20, ae = PI * 0.5 * 0.6;
+			float fe = 20, ae = PI * 0.5 * 0.6;
 
-			double spu[7];
+			float spu[7];
 
-			double Krit, KritB, KritBB;
+			float Krit, KritB, KritBB;
 			KritBB = 1e20;
 
 			GetCamPos(u);
@@ -614,14 +705,14 @@ namespace fsl
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d2.at<uch>(x, y) = imgs[u].USGet(x, y);
+					d2.at<uch>(x, y) = imgs[u]USGetI(x, y);
 				}
 			}
 #endif
-			list[0] = Vector3(148.5, 105, devia[4]) + cams[u][0];
-			list[1] = Vector3(-148.5, 105, devia[5]) + cams[u][0];
-			list[2] = Vector3(-148.5, -105, devia[6]) + cams[u][0];
-			list[3] = Vector3(148.5, -105, devia[7]) + cams[u][0];
+			list[0] = Vector3(148.5, 105, devia[4]);
+			list[1] = Vector3(-148.5, 105, devia[5]);
+			list[2] = Vector3(-148.5, -105, devia[6]);
+			list[3] = Vector3(148.5, -105, devia[7]);
 
 			bb[0] = cams[u][0];
 			bb[1] = cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z;
@@ -654,13 +745,14 @@ namespace fsl
 
 			for (int i = 0; i < 4; i++)
 			{
-				r = bbf / K / (list[i] * cam[3]);
-				list[i] = Vector3(list[i] * cam[1] * r + immaxX / 2, list[i] * cam[2] * r + immaxY / 2, bbf / K);
+				ToCam(list[i], cam[0], cam[1], cam[2], cam[3], bbf, K)
+				//r = (list[i].x * cam[3].x + list[i].y * cam[3].y + list[i].z * cam[3].z) * bbf / K;
+				//list[i] = Vector3((list[i].x * cam[1].x + list[i].y * cam[1].y + list[i].z * cam[1].z) / r + immaxX / 2, (list[i].x * cam[2].x + list[i].y * cam[2].y + list[i].z * cam[2].z) / r + immaxY / 2, bbf / K);
 			}
-			double Kr = 0;
+			float Kr = 0;
 			for (int j = 0; j < 4; j++)
 			{
-				double TK = 0;
+				float TK = 0;
 				for (int i = 0; i < 4; i++)
 				{
 					P.x = list[i].x - lists[u][(i + j < 4) ? i + j : i + j - 4].x;
@@ -717,7 +809,7 @@ namespace fsl
 				}
 				a = (random > 0.7) ? ba : ma + (1 - 2 * random) * da;
 				f = (random > 0.7) ? bf : mf + (1 - 2 * random) * df;
-				double koof = 0, tf;
+				float koof = 0, tf;
 
 				for (int i = 0; i < 7; i++)spu[0] = 0;
 				cam[0] = s[0];
@@ -729,22 +821,23 @@ namespace fsl
 				cam[2].SetLenght(1);
 				cam[1] = cam[3] / cam[2];
 				cam[1].SetLenght(1);
-				list[0] = Vector3(148.5, 105, devia[4]) + cam[0];
-				list[1] = Vector3(-148.5, 105, devia[5]) + cam[0];
-				list[2] = Vector3(-148.5, -105, devia[6]) + cam[0];
-				list[3] = Vector3(148.5, -105, devia[7]) + cam[0];
+				list[0] = Vector3(148.5, 105, devia[4]);
+				list[1] = Vector3(-148.5, 105, devia[5]);
+				list[2] = Vector3(-148.5, -105, devia[6]);
+				list[3] = Vector3(148.5, -105, devia[7]);
 				tf = f + spu[6];
 				if (tf > mf + df) tf = mf + df;
 				if (tf < mf - df) tf = mf - df;
 				for (int i = 0; i < 4; i++)
 				{
-					r = tf / K / (list[i] * cam[3]);
-					list[i] = Vector3(list[i] * cam[1] * r + immaxX / 2, list[i] * cam[2] * r + immaxY / 2, tf / K);
+					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], tf, K)
+					//r = tf / K / (list[i] * cam[3]);
+					//list[i] = Vector3(list[i] * cam[1] * r + immaxX / 2, list[i] * cam[2] * r + immaxY / 2, tf / K);
 				}
 				Kr = 0;
 				for (int j = 0; j < 4; j++)
 				{
-					double TK = 0;
+					float TK = 0;
 					for (int i = 0; i < 4; i++)
 					{
 						P.x = list[i].x - lists[u][(i + j < 4) ? i + j : i + j - 4].x;
@@ -754,11 +847,11 @@ namespace fsl
 					}
 					if (TK < Kr || Kr == 0) Kr = TK;
 				}
-				double KritL = Kr;
+				float KritL = Kr;
 
 				for (int W = 0, EW = 0; W < MW && EW < MW; W++, EW++)
 				{
-					koof = 0.333 * (MW - W) / (double)(MW);
+					koof = 0.333 * (MW - W) / (float)(MW);
 					for (int i = 0; i < 7; i++)spu[0] = 0;
 					switch (W % 14)
 					{
@@ -794,13 +887,14 @@ namespace fsl
 					tf = f + spu[6];
 					for (int i = 0; i < 4; i++)
 					{
-						r = tf / K / (list[i] * cam[3]);
-						list[i] = Vector3(list[i] * cam[1] * r + immaxX / 2, list[i] * cam[2] * r + immaxY / 2, tf / K);
+						ToCam(list[i], cam[0], cam[1], cam[2], cam[3], tf, K)
+						//r = tf / K / (list[i] * cam[3]);
+						//list[i] = Vector3(list[i] * cam[1] * r + immaxX / 2, list[i] * cam[2] * r + immaxY / 2, tf / K);
 					}
 					Kr = 0;
 					for (int j = 0; j < 4; j++)
 					{
-						double TK = 0;
+						float TK = 0;
 						for (int i = 0; i < 4; i++)
 						{
 							P.x = list[i].x - lists[u][(i + j < 4) ? i + j : i + j - 4].x;
@@ -865,12 +959,12 @@ namespace fsl
 						Vector3 B = list[(i + 1 > 3) ? i + 1 - 4 : i + 1];
 						for (int x = 0; x < 200; x++)
 						{
-							double _x = (x + 1 + 0.25) / (200 + 1.0);
+							float _x = (x + 1 + 0.25) / (200 + 1.0);
 							P.x = B.x * _x + A.x * (1 - _x);
 							P.y = B.y * _x + A.y * (1 - _x);
 							if (P.x >= 0 && P.x < immaxX - 1 && P.y >= 0 && P.y < immaxY - 1)
 							{
-								t = blurred[u].USGet((int)P.x, (int)P.y);
+								t = blurred[u]USGetI((int)P.x, (int)P.y);
 								d1.at<uch>((int)P.x, (int)P.y) = 200;
 							}
 						}
@@ -899,12 +993,12 @@ namespace fsl
 						Vector3 B = list[(i + 1 > 3) ? i + 1 - 4 : i + 1];
 						for (int x = 0; x < 200; x++)
 						{
-							double _x = (x + 1 - 0.25) / (200 + 1.0);
+							float _x = (x + 1 - 0.25) / (200 + 1.0);
 							P.x = B.x * _x + A.x * (1 - _x);
 							P.y = B.y * _x + A.y * (1 - _x);
 							if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
 							{
-								t = blurred[u].USGet((int)P.x, (int)P.y);
+								t = blurred[u]USGetI((int)P.x, (int)P.y);
 								d1.at<uch>((int)P.x, (int)P.y) = 0;
 							}
 						}
@@ -977,7 +1071,7 @@ namespace fsl
 #ifdef DebugConsole
 			std::cout << "Kadr " << u << std::endl;
 #endif // DEBUG
-			double r, t;
+			float r, t;
 			Vector3 A = lists[u][0];
 			Vector3 B = lists[u][1];
 			Vector3 C = lists[u][2];
@@ -989,20 +1083,20 @@ namespace fsl
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d2.at<uch>(x, y) = blurred[u].USGet(x, y);
+					d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
 				}
 			}
 #endif // UpdateOreintDebug
 
-			double krbb = -1, CFxbb, CFybb, CFzbb, CFfbb;
+			float krbb = -1, CFxbb, CFybb, CFzbb, CFfbb;
 			int borr, blor;
 			Vector3 Ks32T, Ks51T, Ks32B, Ks51B, P;
 			for (int E = 0; E < 20; E++)
 			{
 				int orr = (E % 2 == 0) ? 1 : -1, lor = ((E % 4) / 2) ? 1 : -1;
-				double G11 = -40, G12 = 40, G21 = -30, G22 = 30, G31 = 0.7, G32 = 1.2, G41 = -15 / 180 * PI, G42 = 15 / 180 * PI;
-				double CFx, CFy, CFz, CFf, CFxb = 0, CFyb = 0, CFzb = 1, CFfb = 0;
-				double krb = -1;
+				float G11 = -40, G12 = 40, G21 = -30, G22 = 30, G31 = 0.7, G32 = 1.2, G41 = -15 / 180 * PI, G42 = 15 / 180 * PI;
+				float CFx, CFy, CFz, CFf, CFxb = 0, CFyb = 0, CFzb = 1, CFfb = 0;
+				float krb = -1;
 				for (int I = 0; I < 40; I++)
 				{
 					CFx = G11 + random * (G12 - G11);
@@ -1027,18 +1121,19 @@ namespace fsl
 						proectednoga[i] = rot.operator&(proectednoga[i]);
 						proectednoga[i].x += CFx; proectednoga[i].y += CFy;
 						P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
-						r = focuss[u] / K / (P * cams[u][3]);
-						proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
+						ToCam(proectednoga[i], cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K)
+						//r = focuss[u] / K / (P * cams[u][3]);
+						//proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
 						proectednoga[i].z = t;
 					}
 					if ((proectednoga[51].y > proectednoga[30].y) && ((abs(proectednoga[51].y - proectednoga[30].y)) > 3 * abs(proectednoga[51].x - proectednoga[01].x))) continue;
 
 #define Oreintdisp 50
 
-					double _x, _y;
+					float _x, _y;
 					int buff[Oreintdisp][Oreintdisp][4];
 
-					double avg = 0;
+					float avg = 0;
 
 					for (int x = 0; x < Oreintdisp; x++)
 					{
@@ -1048,15 +1143,15 @@ namespace fsl
 							_y = (y + 1) / (Oreintdisp + 1.0);
 							P.x = A.x * (1 - _x)*(1 - _y) + B.x * (_x)*(1 - _y) + C.x * (_x)*(_y)+D.x * (1 - _x)*(_y);
 							P.y = A.y * (1 - _x)*(1 - _y) + B.y * (_x)*(1 - _y) + C.y * (_x)*(_y)+D.y * (1 - _x)*(_y);
-							t = blurred[u].Get((int)P.x, (int)P.y);
+							t = blurred[u]GetI((int)P.x, (int)P.y);
 							buff[x][y][2] = P.x;
 							buff[x][y][3] = P.y;
 							buff[x][y][0] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 							avg += t;
 						}
 					}
-					avg /= (double)(Oreintdisp * Oreintdisp);
-					double kr = 0;
+					avg /= (float)(Oreintdisp * Oreintdisp);
+					float kr = 0;
 
 					for (int x = 0; x < Oreintdisp; x++)
 					{
@@ -1196,14 +1291,14 @@ namespace fsl
 #ifdef DebugConsole
 		std::cout << "GetBestedBorder " << std::endl;
 #endif // DEBUG
-		double tr = 17, tr2 = tr * 1, tr3 = tr * 1, w1 = 1, w2 = 0.7, w3 = 0.2, r;
-		double Krit, KritB, KritBB;
-		double Krite, KriteB, KriteBB;
-		double k1, k2, k1b, k1bb, k2b, k2bb, k11, k12, k21, k22;
+		float tr = 17, tr2 = tr * 1, tr3 = tr * 1, w1 = 1, w2 = 0.7, w3 = 0.2, r;
+		float Krit, KritB, KritBB;
+		float Krite, KriteB, KriteBB;
+		float k1, k2, k1b, k1bb, k2b, k2bb, k11, k12, k21, k22;
 		Vector3 P1, P2, P, TA, TB, *A, *B, *C, *D;
 		int t;
 
-		double _x, _y, disp[7]{ -0.71 * 22 * 1.2, -0.71 * 12 * 1.2, -0.71, 0,  0.71 ,0.71 * 12 * 1.2 ,0.71 * 22 * 1.2 };
+		float _x, _y, disp[7]{ -0.71 * 22 * 1.2, -0.71 * 12 * 1.2, -0.71, 0,  0.71 ,0.71 * 12 * 1.2 ,0.71 * 22 * 1.2 };
 		int pdisp = pointsDisp * 2;
 		for (int u = 0; u < framecount; u++)
 		{
@@ -1216,7 +1311,7 @@ namespace fsl
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d2.at<uch>(x, y) = blurred[u].USGet(x, y);
+					d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
 				}
 			}
 			d1 = d2.clone();
@@ -1226,8 +1321,8 @@ namespace fsl
 				B = &lists[u][(i + 1 > 3) ? i + 1 - 4 : i + 1];
 				C = &lists[u][(i + 2 > 3) ? i + 2 - 4 : i + 2];
 				D = &lists[u][(i + 3 > 3) ? i + 3 - 4 : i + 3];
-				double r1 = (*A - *D).GetLenght();
-				double r2 = (*B - *C).GetLenght();
+				float r1 = (*A - *D).GetLenght();
+				float r2 = (*B - *C).GetLenght();
 				P1 = *A;
 				P2 = *B;
 				for (int y = 2, _y = -1; y <= 4; y++, _y++) if (y != pointsDeep)
@@ -1241,7 +1336,7 @@ namespace fsl
 						P.y = TB.y * _x + TA.y * (1 - _x);
 						if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
 						{
-							t = blurred[u].USGet((int)P.x, (int)P.y);
+							t = blurred[u]USGetI((int)P.x, (int)P.y);
 							d1.at<uch>((int)P.x, (int)P.y) = (t > 255 / 2) ? 0 : 255;
 						}
 					}
@@ -1251,7 +1346,7 @@ namespace fsl
 			cv::waitKey(0);
 
 #endif
-			double KritBBO[4]{ -1e20 ,-1e20 ,-1e20 ,-1e20 };
+			float KritBBO[4]{ -1e20 ,-1e20 ,-1e20 ,-1e20 };
 			for (int trys = 0; trys < 3; trys++) for (int i = 0; i < 4; i++)
 			{
 				KritBB = -1e20;
@@ -1260,8 +1355,8 @@ namespace fsl
 				B = &lists[u][(i + 1 > 3) ? i + 1 - 4 : i + 1];
 				C = &lists[u][(i + 2 > 3) ? i + 2 - 4 : i + 2];
 				D = &lists[u][(i + 3 > 3) ? i + 3 - 4 : i + 3];
-				double r1 = (*A - *D).GetLenght();
-				double r2 = (*B - *C).GetLenght();
+				float r1 = (*A - *D).GetLenght();
+				float r2 = (*B - *C).GetLenght();
 				int all = 7000;
 				int MaxE = (trys > 0) ? (3) : 4 * 4;
 				for (int E = 0; E < MaxE; E++)
@@ -1273,8 +1368,8 @@ namespace fsl
 					}
 					else
 					{
-						k11 = 1 - 1 / (double)(trys * trys + 4); k21 = 1 - 1 / (double)(trys * trys + 4);
-						k12 = 1 + 1 / (double)(trys * trys + 4); k22 = 1 + 1 / (double)(trys * trys + 4);
+						k11 = 1 - 1 / (float)(trys * trys + 4); k21 = 1 - 1 / (float)(trys * trys + 4);
+						k12 = 1 + 1 / (float)(trys * trys + 4); k22 = 1 + 1 / (float)(trys * trys + 4);
 					}
 					P1 = *A;
 					P2 = *B;
@@ -1296,7 +1391,7 @@ namespace fsl
 							if (k2b > 0.7 * _x) k21 = k22 + 0.93 * (k21 - k22);
 							if (k2b > 0.4 * _x && k2b < 0.6 * _x) { _y = k21 - k22; k22 = k21 - 0.96 * _y; k21 = k22 + 0.96 * _y; }
 						}
-						double val = (1 - 0.5 * I / (200.0 + I));
+						float val = (1 - 0.5 * I / (200.0 + I));
 						unsigned char buff[pointsDisp * 2][7];
 #ifdef GetBestedBorderDebug
 						d1 = d2.clone();
@@ -1321,7 +1416,7 @@ namespace fsl
 								P.y = TB.y * _x + TA.y * (1 - _x);
 								if (P.x > 1 && P.x < immaxX - 2 && P.y > 1 && P.y < immaxY - 2)
 								{
-									t = blurred[u].USGet((int)P.x, (int)P.y);
+									t = blurred[u]USGetI((int)P.x, (int)P.y);
 									buff[x][y] = t;
 #ifdef GetBestedBorderDebug
 									d1.at<uch>((int)P.x, (int)P.y) = (t > 255 / 2) ? 0 : 255;
@@ -1391,7 +1486,7 @@ namespace fsl
 				{
 					for (int y = 0; y < immaxY; y++)
 					{
-						d2.at<uch>(x, y) = blurred[u].USGet(x, y);
+						d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
 					}
 				}
 				for (int i = 0; i < 4; i++)
@@ -1400,8 +1495,8 @@ namespace fsl
 					B = &lists[u][(i + 1 > 3) ? i + 1 - 4 : i + 1];
 					C = &lists[u][(i + 2 > 3) ? i + 2 - 4 : i + 2];
 					D = &lists[u][(i + 3 > 3) ? i + 3 - 4 : i + 3];
-					double r1 = (*A - *D).GetLenght();
-					double r2 = (*B - *C).GetLenght();
+					float r1 = (*A - *D).GetLenght();
+					float r2 = (*B - *C).GetLenght();
 					P1 = *A;
 					P2 = *B;
 					for (int y = 2, _y = -1; y <= 4; y++, _y++) if (y != pointsDeep)
@@ -1415,7 +1510,7 @@ namespace fsl
 							P.y = TB.y * _x + TA.y * (1 - _x);
 							if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
 							{
-								t = blurred[u].USGet((int)P.x, (int)P.y);
+								t = blurred[u]USGetI((int)P.x, (int)P.y);
 								d2.at<uch>((int)P.x, (int)P.y) = (t > 255 / 2) ? 0 : 255;
 							}
 						}
@@ -1433,7 +1528,7 @@ namespace fsl
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d2.at<uch>(x, y) = blurred[u].USGet(x, y);
+					d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
 				}
 			}
 			for (int i = 0; i < 4; i++)
@@ -1442,8 +1537,8 @@ namespace fsl
 				B = &lists[u][(i + 1 > 3) ? i + 1 - 4 : i + 1];
 				C = &lists[u][(i + 2 > 3) ? i + 2 - 4 : i + 2];
 				D = &lists[u][(i + 3 > 3) ? i + 3 - 4 : i + 3];
-				double r1 = (*A - *D).GetLenght();
-				double r2 = (*B - *C).GetLenght();
+				float r1 = (*A - *D).GetLenght();
+				float r2 = (*B - *C).GetLenght();
 				P1 = *A;
 				P2 = *B;
 				for (int y = 2, _y = -1; y <= 4; y++, _y++) if (y != pointsDeep)
@@ -1457,7 +1552,7 @@ namespace fsl
 						P.y = TB.y * _x + TA.y * (1 - _x);
 						if (P.x >= 0 && P.x < immaxX && P.y >= 0 && P.y < immaxY)
 						{
-							t = blurred[u].USGet((int)P.x, (int)P.y);
+							t = blurred[u]USGetI((int)P.x, (int)P.y);
 							d2.at<uch>((int)P.x, (int)P.y) = (t > 255 / 2) ? 0 : 255;
 						}
 					}
@@ -1471,17 +1566,17 @@ namespace fsl
 
 	void GetBorderDisp_new()
 	{
-		double Krit, KritB, KritBB;
-		double Krite, KriteB, KriteBB;
-		double k, h, x0, a, kb, hb, x0b, ab, kbb, hbb, x0bb, abb, km, hm, x0m, am, kd, hd, x0d, ad;
+		float Krit, KritB, KritBB;
+		float Krite, KriteB, KriteBB;
+		float k, h, x0, a, kb, hb, x0b, ab, kbb, hbb, x0bb, abb, km, hm, x0m, am, kd, hd, x0d, ad;
 		Vector3 P1, P2, P, A, B, C, D;
 		int t;
-		double _x, _y, r;
+		float _x, _y, r;
 		for (int u = 0; u < framecount; u++)
 		{
 			while (listsborder.size() <= u)
 			{
-				double*** t = new double**[4]; for (int i = 0; i < 4; i++) { t[i] = new double*[20]; for (int j = 0; j < 20; j++) t[i][j] = new double[10]; }
+				float*** t = new float**[4]; for (int i = 0; i < 4; i++) { t[i] = new float*[20]; for (int j = 0; j < 20; j++) t[i][j] = new float[10]; }
 				listsborder.push_back(t);
 			}
 			unsigned char buff[20][40];
@@ -1491,8 +1586,8 @@ namespace fsl
 				B = lists[u][(i + 1 > 3) ? i + 1 - 4 : i];
 				C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i];
 				D = lists[u][(i + 3 > 3) ? i + 3 - 4 : i];
-				double r1 = (A - D).GetLenght();
-				double r2 = (B - C).GetLenght();
+				float r1 = (A - D).GetLenght();
+				float r2 = (B - C).GetLenght();
 				for (int x = 0; x < 20; x++)
 				{
 					_x = (x + 1) / (20 + 1.0);
@@ -1505,7 +1600,7 @@ namespace fsl
 						if (P.y < 0) { P.y = 0; }
 						if (P.x > immaxX) { P.y = immaxX - 1; }
 						if (P.y > immaxY) { P.x = immaxY - 1; }
-						t = blurred[u].Get((int)P.x, (int)P.y);
+						t = blurred[u]GetI((int)P.x, (int)P.y);
 						buff[x][y + 20] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 					}
 					KritBB = 1e20;
@@ -1521,7 +1616,7 @@ namespace fsl
 							a = am + (2 - random) * ad;
 							h = hm + (2 - random) * hd;
 
-							double Kr = 0;
+							float Kr = 0;
 
 							for (int y = -20; y <= 20; y++)
 							{
@@ -1529,7 +1624,7 @@ namespace fsl
 								Kr += t * t;
 							}
 
-							double disp = 0.02;
+							float disp = 0.02;
 							if (Kr < KritB)
 							{
 								KritB = Kr;
@@ -1594,7 +1689,7 @@ namespace fsl
 			B = lists[u][1];
 			C = lists[u][2];
 			D = lists[u][3];
-			double iAB = (A - B).GetLenght(), iBC = (C - B).GetLenght(), iCD = (C - D).GetLenght(), iDA = (A - D).GetLenght();
+			float iAB = (A - B).GetLenght(), iBC = (C - B).GetLenght(), iCD = (C - D).GetLenght(), iDA = (A - D).GetLenght();
 			for (int temp = 0; temp < 100; temp++)
 			{
 
@@ -1604,15 +1699,15 @@ namespace fsl
 
 	void GetBorderDisp()
 	{
-		double Krite, KriteB, KriteBB;
+		float Krite, KriteB, KriteBB;
 		Vector3 P1, P2, P, A, B, C, D;
 		int t;
-		double _x, _y, r, q;
+		float _x, _y, r, q;
 		for (int u = 0; u < framecount; u++)
 		{
 			while (listsborder.size() <= u)
 			{
-				double*** t = new double**[4]; for (int i = 0; i < 4; i++) { t[i] = new double*[20]; for (int j = 0; j < 20; j++) t[i][j] = new double[10]; }
+				float*** t = new float**[4]; for (int i = 0; i < 4; i++) { t[i] = new float*[20]; for (int j = 0; j < 20; j++) t[i][j] = new float[10]; }
 				listsborder.push_back(t);
 			}
 			unsigned char buff[20][61][3];
@@ -1622,8 +1717,8 @@ namespace fsl
 				B = lists[u][(i + 1 > 3) ? i + 1 - 4 : i + 1];
 				C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i + 2];
 				D = lists[u][(i + 3 > 3) ? i + 3 - 4 : i + 3];
-				double r1 = (A - D).GetLenght();
-				double r2 = (B - C).GetLenght();
+				float r1 = (A - D).GetLenght();
+				float r2 = (B - C).GetLenght();
 				for (int x = 0; x < 20; x++)
 				{
 					_x = (x + 1) / (20 + 1.0);
@@ -1636,13 +1731,13 @@ namespace fsl
 						if (P.y < 0) { P.y = 0; }
 						if (P.y > immaxY - 1) { P.y = immaxY - 1; }
 						if (P.x > immaxX - 1) { P.x = immaxX - 1; }
-						t = blurred[u].Get((int)P.x, (int)P.y);
+						t = blurred[u]GetI((int)P.x, (int)P.y);
 						buff[x][y + 30][0] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 						buff[x][y + 30][1] = (int)P.x;
 						buff[x][y + 30][2] = (int)P.y;
 					}
 				}
-				double krb = 0, kr;
+				float krb = 0, kr;
 				for (int x = 0; x < 20; x++)
 				{
 					int best = 10000;
@@ -1670,10 +1765,10 @@ namespace fsl
 					q = sqrt(_x * _x + _y * _y);
 					//if (best < 0) q = -q;
 					if (best > 0) q = -q;
-					//listsborder[u][i][x][3] = q / sin(PI / 2 - fi);
+					//listsborder[u][i][x][3] = q / t_sin(PI / 2 - fi);
 					listsborder[u][i][x][3] = q;
 				}
-				double x0, x1;
+				float x0, x1;
 				krb = 1e10;
 				for (int _x0 = -5; _x0 < 6; _x0++)for (int _x1 = -5; _x1 < 6; _x1++)
 				{
@@ -1795,7 +1890,7 @@ namespace fsl
 #ifdef DebugConsole
 		std::cout << "GetFoot" << std::endl;
 #endif // DEBUG
-		double r, te;
+		float r, te;
 		Vector3 P, A, B, C, D;
 		Vector2 Ko, Te, Li;
 		Vector2 M, V1, V2, DinV, R1, R2, R3, R4, X, Y;
@@ -1810,7 +1905,7 @@ namespace fsl
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d1.at<uch>(x, y) = blurred[u].USGet(x, y);
+					d1.at<uch>(x, y) = blurred[u]USGetI(x, y);
 				}
 			}
 
@@ -1824,11 +1919,11 @@ namespace fsl
 			P = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
 			Li = Vector2(P.x, P.y);
 			Li = Li - Ko;
-			double lineK[4][3];
+			float lineK[4][3];
 			PhisicPoint* points = new PhisicPoint[400];
 
 			Te = Ko - points[0].loc;
-			double min = 1e200, t;
+			float min = 1e20, t;
 			int errcounter = 0;
 			while (Ko.x < 0 || Ko.y < 0 || Ko.x >= immaxX || Ko.y >= immaxY) // Проверка на вне кадра
 			{
@@ -1857,7 +1952,7 @@ namespace fsl
 			}
 
 			int deadline = 0;
-			te = 1e100;
+			te = 1e20;
 			for (int i = 0; i < 4; i++)
 			{
 				A = lists[u][i];
@@ -1901,17 +1996,17 @@ namespace fsl
 			{
 				for (int x = -1; x < 2; x++)for (int y = -1; y < 2; y++)
 				{
-					d2.at<uch>(std::max(std::min(points[i].loc.x + x, immaxX - 1.0), 0.0), std::max(std::min(points[i].loc.y + y, immaxY - 1.0), 0.0)) = (d1.at<uch>(std::max(std::min(points[i].loc.x, immaxX - 1.0), 0.0), std::max(std::min(points[i].loc.y, immaxY - 1.0), 0.0)) > 128) ? 0 : 255;
+					d2.at<uch>(max_f(min_f(points[i].loc.x + x, immaxX - 1.0), 0.0), max_f(min_f(points[i].loc.y + y, immaxY - 1.0), 0.0)) = (d1.at<uch>(max_f(min_f(points[i].loc.x, immaxX - 1.0), 0.0), max_f(min_f(points[i].loc.y, immaxY - 1.0), 0.0)) > 128) ? 0 : 255;
 				}
 			}
 			cv::imshow("GetFootDebug", d2);
 			cv::waitKey(1);
 #endif // GetFootDebug
 
-			double c = 1150, d = 30, dt = 0.01, g = 50, rmids = ((A - B).GetLenght() + (B - C).GetLenght() + (C - D).GetLenght() + (D - A).GetLenght()) / 2.0, _x, _y;
-			double ots[4]{ 0,5,13,25 }, w1 = 0.6, w2 = 0.25, w3 = 0.15;
+			float c = 1150, d = 30, dt = 0.01, g = 50, rmids = ((A - B).GetLenght() + (B - C).GetLenght() + (C - D).GetLenght() + (D - A).GetLenght()) / 2.0, _x, _y;
+			float ots[4]{ 0,5,13,25 }, w1 = 0.6, w2 = 0.25, w3 = 0.15;
 			int buff[7];
-			double mtime = 10000;
+			float mtime = 10000;
 			int diskount = mtime / 20;
 			for (int time = 0; time < mtime; time++)
 			{
@@ -1921,23 +2016,23 @@ namespace fsl
 					d2 = d1.clone();
 				}
 #endif // GetFootDebug
-				double kv = 3 + 30.0 * (time / mtime)* (time / mtime);
-				double  rmid = (0.00156*rmids*(1 - time / mtime) + 0.4) * 0.47;
+				float kv = 3 + 30.0 * (time / mtime)* (time / mtime);
+				float  rmid = (0.00156*rmids*(1 - time / mtime) + 0.4) * 0.47;
 				//rmid = 0;
 				for (int i = 1; i < 200; i++) { points[i].a.x = 0; points[i].a.y = 0; }
-				double k = 0, fi = 0, r1, r2, r3, r4;
+				float k = 0, fi = 0, r1, r2, r3, r4;
 				bool isCorner;
 				for (int i_ = 200 - 2, i0 = 200 - 1, i1 = 0, i2 = 1, i3 = 2; i1 < 200; i1++, i2 = (i2 == 200 - 1) ? 0 : i2 + 1, i0 = (i0 == 200 - 1) ? 0 : i0 + 1, i_ = (i_ == 200 - 1) ? 0 : i_ + 1, i3 = (i3 == 200 - 1) ? 0 : i3 + 1)
 				{
 					M = (points[i0].loc + points[i2].loc) * 0.5;
 					X = points[i1].loc - M;
-					if (X.x != 0 && X.y != 0); X.SetLenght(1);
+					if (X.x != 0 && X.y != 0) X.SetLenght(1);
 					DinV.x = (points[i0].v.x + points[i2].v.x - points[i1].v.x * 2.0);
 					DinV.y = (points[i0].v.y + points[i2].v.y - points[i1].v.y * 2.0);
 					for (int i = -3; i < 4; i++)
 					{
 						V1 = points[i1].loc + X * ots[abs(i)] * ((i > 0) ? 1 : -1);
-						buff[i + 3] = imgs[u].Get((int)V1.x, (int)V1.y);
+						buff[i + 3] = imgs[u]GetI((int)V1.x, (int)V1.y);
 					}
 					if (((points[i2].loc.x - points[i0].loc.x)*(points[i1].loc.y - points[i0].loc.y) - (points[i2].loc.y - points[i0].loc.y)*(points[i1].loc.x - points[i0].loc.x)) > 0) k = -1; else k = 1;
 					isCorner = false; if (time < mtime / 8) for (int i = 0; i < 4; i++) if (abs(lineK[i][0] * points[i1].loc.x + lineK[i][1] * points[i1].loc.y + lineK[i][2]) < 6) isCorner = true;
@@ -1945,24 +2040,24 @@ namespace fsl
 						fi = g * (0.6 * (buff[2] - 2 * buff[3] + buff[4]) + 0.25 * (buff[1] - 2 * buff[3] + buff[5]) + 0.15 * (buff[0] - 2 * buff[3] + buff[6]))*k;
 					if (abs(buff[0] - buff[4]) + abs(buff[1] - buff[5]) + abs(buff[0] - buff[6]) < 40 * 3) if (buff[1] < 40 && buff[5] < 40) fi += 1500 * k;
 					points[i1].a = X * fi + DinV * 5;
-					R1 = (points[i0].loc - points[i1].loc); r1 = R1.GetLenght() + 1e-20;
-					R2 = (points[i2].loc - points[i1].loc); r2 = R2.GetLenght() + 1e-20;
-					//R3 = (points[i_].loc - points[i1].loc); r3 = R3.GetLenght() + 1e-20;
-					//R4 = (points[i3].loc - points[i1].loc); r4 = R4.GetLenght() + 1e-20;
-					//points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2 + R3.x * (rmid * 1.9 - r3) / r3 * 0.25 + R4.x * (rmid * 1.9 - r4) / r4 * 0.25) + d * DinV.x - kv * points[i1].v.x;
-					//points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2 + R3.y * (rmid * 1.9 - r3) / r3 * 0.25 + R4.y * (rmid * 1.9 - r4) / r4 * 0.25) + d * DinV.y - kv * points[i1].v.y;
-					V1 = points[i1].loc; V1.x -= Ks32[u].x; V1.y -= Ks32[u].y; r3 = V1.GetLenght();
+										V1 = points[i1].loc; V1.x -= Ks32[u].x; V1.y -= Ks32[u].y; r3 = V1.GetLenght();
 					V2 = points[i1].loc; V2.x -= Ks51[u].x; V2.y -= Ks51[u].y; r4 = V2.GetLenght();
 					if (r3 > 7 + (mtime - time) / mtime * 10) { V1.x = 0; V1.y = 0; }
 					else { V1.x = V1.x / r3 * 30000; V1.y = V1.y / r3 * 30000; }
 					if (r4 > 7 + (mtime - time) / mtime * 10) { V2.x = 0; V2.y = 0; }
 					else { V2.x = V2.x / r4 * 30000; V2.y = V2.y / r4 * 30000; }
-					points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
-					points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
+					R1 = (points[i0].loc - points[i1].loc); r1 = R1.GetLenght() + 1e-20;
+					R2 = (points[i2].loc - points[i1].loc); r2 = R2.GetLenght() + 1e-20;
+					R3 = (points[i_].loc - points[i1].loc); r3 = R3.GetLenght() + 1e-20;
+					R4 = (points[i3].loc - points[i1].loc); r4 = R4.GetLenght() + 1e-20;
+					points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2 + R3.x * (rmid * 2 - r3) / r3 * 0.01 + R4.x * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
+					points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2 + R3.y * (rmid * 2 - r3) / r3 * 0.01 + R4.y * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
+					//points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
+					//points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
 
 
 				}
-				double ddt = dt * dt * 0.5;
+				float ddt = dt * dt * 0.5;
 				for (int i1 = 0; i1 < 200; i1++) if (i1 != freez)
 				{
 
@@ -2011,7 +2106,7 @@ namespace fsl
 			cv::imshow("GetFootDebug", d2);
 			cv::waitKey(1);
 #endif // GetFootDebug
-			double rad[61][3];
+			float rad[61][3];
 			for (int i0 = 400 - 1, i1 = 0, i2 = 1; i1 < 400; i1++, i2 = (i2 == 400 - 1) ? 0 : i2 + 1, i0 = (i0 == 400 - 1) ? 0 : i0 + 1)
 			{
 				bool isina4 = true;
@@ -2020,9 +2115,9 @@ namespace fsl
 					A = lists[u][i];
 					B = lists[u][(i + 1 > 3) ? i + 1 - 4 : i + 1];
 					C = lists[u][(i + 2 > 3) ? i + 2 - 4 : i + 2];
-					double dx = B.y - A.y;
-					double dy = A.x - B.x;
-					double Q = A.x*dx + A.y*dy;
+					float dx = B.y - A.y;
+					float dy = A.x - B.x;
+					float Q = A.x*dx + A.y*dy;
 					if ((points[i1].loc.x*dx + points[i1].loc.y*dy + Q) * (C.x*dx + C.y*dy + Q) < 0) isina4 = false;
 				}
 				if (!isina4 || i1 == freez) continue;
@@ -2039,14 +2134,14 @@ namespace fsl
 					for (int x = -1; x < 2; x++)for (int y = -1; y < 2; y++)
 					{
 						o = abs(x) + abs(y);
-						t += blurred[u].Get((int)V1.x, (int)V1.y)*((o == 0) ? 0.2 : (o == 1) ? 0.12 : 0.08);
+						t += blurred[u]GetI((int)V1.x, (int)V1.y)*((o == 0) ? 0.2 : (o == 1) ? 0.12 : 0.08);
 					}
 					rad[i + 30][0] = (t < 0) ? 0 : ((t > 255) ? 255 : t);
 					rad[i + 30][1] = (int)V1.x;
 					rad[i + 30][2] = (int)V1.y;
 				}
-				double Krit, KritB, KritBB;
-				double k, h, x0, a, kb, hb, x0b, ab, kbb, hbb, x0bb, abb, km, hm, x0m, am, kd, hd, x0d, ad;
+				float Krit, KritB, KritBB;
+				float k, h, x0, a, kb, hb, x0b, ab, kbb, hbb, x0bb, abb, km, hm, x0m, am, kd, hd, x0d, ad;
 				KritBB = 1e20;
 				for (int E = 0; E < 10; E++)
 				{
@@ -2059,8 +2154,8 @@ namespace fsl
 						x0 = x0m + (2 - random) * x0d;
 						a = am + (2 - random) * ad;
 						h = hm + (2 - random) * hd;
-						double r;
-						double Kr = 0;
+						float r;
+						float Kr = 0;
 						for (int i = -30; i <= 30; i++)
 						{
 
@@ -2073,7 +2168,7 @@ namespace fsl
 							Kr += r * t * t;
 						}
 
-						double disp = 0.02;
+						float disp = 0.02;
 						if (Kr < KritB)
 						{
 							KritB = Kr;
@@ -2107,11 +2202,7 @@ namespace fsl
 #endif // DEBUG
 			while (counter.size() < u + 1)
 			{
-				counter.push_back(Img(immaxX, immaxY));
-			}
-			for (int x = 0; x < immaxX; x++) for (int y = 0; y < immaxY; y++)
-			{
-				counter[u].Set(x, y, 0);
+				Add_counter;
 			}
 			P = Vector3(-75, 0, 0) + cams[u][0];
 			r = focuss[u] / K / (P * cams[u][3]);
@@ -2126,17 +2217,17 @@ namespace fsl
 				r = r * 3; r = (int)r;
 				if (r == 0) r = 1;
 				for (int i = -1; i <= r + 1; i++)
-					counter[u].Set((int)(V1.x * i / r + V2.x * (1 - i / r)), (int)(V1.y * i / r + V2.y * (1 - i / r)), 255);
+					counter[u]SetI((int)(V1.x * i / r + V2.x * (1 - i / r)), (int)(V1.y * i / r + V2.y * (1 - i / r)), 255);
 			}
-			counter[u].Set((int)Ks32[u].x, (int)Ks32[u].y, 100);
-			//counter[u].Set((int)Ks51[u].x, (int)Ks51[u].y, 100);
+			counter[u]SetI((int)Ks32[u].x, (int)Ks32[u].y, 100);
+			//counter[u]SetI((int)Ks51[u].x, (int)Ks51[u].y, 100);
 #ifdef GetFootDebug
 			d3 = d1.clone();
 			for (int x = 0; x < immaxX; x++)
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d3.at<uch>(x, y) = counter[u].USGet(x, y);
+					d3.at<uch>(x, y) = counter[u]USGetI(x, y);
 				}
 			}
 			cv::imshow("GetFootDebugContur", d3);
@@ -2150,27 +2241,27 @@ namespace fsl
 					count = 0;
 					for (int k1 = 1, x = (n1 == 0) ? k1 : immaxX - 1 - k1; k1 < immaxX - 1; k1++, x = (n1 == 0) ? k1 : immaxX - 1 - k1) for (int k2 = 1, y = (n2 == 0) ? k2 : immaxY - 1 - k2; k2 < immaxY - 1; k2++, y = (n2 == 0) ? k2 : immaxY - 1 - k2)
 					{
-						if (counter[u].Get(x, y) == 0)
+						if (counter[u]GetI(x, y) == 0)
 						{
-							if (counter[u].Get(x + 1, y) == 100) counter[u].Set(x, y, 100);
-							else if (counter[u].Get(x - 1, y) == 100) counter[u].Set(x, y, 100);
-							else if (counter[u].Get(x, y + 1) == 100) counter[u].Set(x, y, 100);
-							else if (counter[u].Get(x, y - 1) == 100) counter[u].Set(x, y, 100);
-							else if (counter[u].Get(x + 1, y) == 150) counter[u].Set(x, y, 100);
-							else if (counter[u].Get(x - 1, y) == 150) counter[u].Set(x, y, 100);
-							else if (counter[u].Get(x, y + 1) == 150) counter[u].Set(x, y, 100);
-							else if (counter[u].Get(x, y - 1) == 150) counter[u].Set(x, y, 100);
-							if (counter[u].Get(x, y) == 100)count++;
+							if (counter[u]GetI(x + 1, y) == 100) counter[u]SetI(x, y, 100);
+							else if (counter[u]GetI(x - 1, y) == 100) counter[u]SetI(x, y, 100);
+							else if (counter[u]GetI(x, y + 1) == 100) counter[u]SetI(x, y, 100);
+							else if (counter[u]GetI(x, y - 1) == 100) counter[u]SetI(x, y, 100);
+							else if (counter[u]GetI(x + 1, y) == 150) counter[u]SetI(x, y, 100);
+							else if (counter[u]GetI(x - 1, y) == 150) counter[u]SetI(x, y, 100);
+							else if (counter[u]GetI(x, y + 1) == 150) counter[u]SetI(x, y, 100);
+							else if (counter[u]GetI(x, y - 1) == 150) counter[u]SetI(x, y, 100);
+							if (counter[u]GetI(x, y) == 100)count++;
 						}
-						else if (counter[u].Get(x, y) == 100)
+						else if (counter[u]GetI(x, y) == 100)
 						{
 							count++;
-							counter[u].Set(x, y, 150);
+							counter[u]SetI(x, y, 150);
 						}
-						else if (counter[u].Get(x, y) == 150)
+						else if (counter[u]GetI(x, y) == 150)
 						{
 							count++;
-							counter[u].Set(x, y, 255);
+							counter[u]SetI(x, y, 255);
 						}
 					}
 				}
@@ -2184,7 +2275,7 @@ namespace fsl
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d3.at<uch>(x, y) = counter[u].USGet(x, y);
+					d3.at<uch>(x, y) = counter[u]USGetI(x, y);
 				}
 			}
 			cv::imshow("GetFootDebugContur", d3);
@@ -2201,7 +2292,7 @@ namespace fsl
 			for (int x = 0; x < immaxX; x++)
 			{
 				for (int y = 0; y < immaxY; y++)
-					fout << (counter[u].USGet(x, y) > 0) ? 1 : 0 << ' ';
+					fout << (counter[u]USGetI(x, y) > 0) ? 1 : 0 << ' ';
 				fout << std::endl;
 			}
 			fout.close();
@@ -2220,11 +2311,11 @@ namespace fsl
 #ifdef DebugConsole
 		std::cout << "GetFirstVoxel" << std::endl;
 #endif // DEBUG
-		double *ix = new double[NS] { -120.415, -118.223, -107.241, -92.491, -76.224, -59.869, -43.488, -27.181, -10.797, 5.474, 21.693, 37.937, 54.23, 70.581, 86.815, 102.924, 118.374, 126.633, 123.11, 114.115, 102.974, 89.941, 76.335, 61.995, 45.691, 29.353, 13.098, -3.187, -19.441, -35.626, -51.862, -68.153, -84.333, -99.562, -112.899 };
-		double *iy = new double[NS] { 4.29, 20.134, 32.102, 38.86, 40.352, 40.602, 40.873, 42.078, 41.615, 43.627, 46.018, 48.231, 50.013, 50.06, 47.825, 46.354, 40.912, 27.898, 12.412, -1.136, -13.152, -22.505, -31.278, -38.64, -40.317, -40.481, -38.396, -36.517, -34.39, -31.79, -29.515, -27.687, -25.138, -19.178, -9.744 };
+		float *ix = new float[NS] { -120.415, -118.223, -107.241, -92.491, -76.224, -59.869, -43.488, -27.181, -10.797, 5.474, 21.693, 37.937, 54.23, 70.581, 86.815, 102.924, 118.374, 126.633, 123.11, 114.115, 102.974, 89.941, 76.335, 61.995, 45.691, 29.353, 13.098, -3.187, -19.441, -35.626, -51.862, -68.153, -84.333, -99.562, -112.899 };
+		float *iy = new float[NS] { 4.29, 20.134, 32.102, 38.86, 40.352, 40.602, 40.873, 42.078, 41.615, 43.627, 46.018, 48.231, 50.013, 50.06, 47.825, 46.354, 40.912, 27.898, 12.412, -1.136, -13.152, -22.505, -31.278, -38.64, -40.317, -40.481, -38.396, -36.517, -34.39, -31.79, -29.515, -27.687, -25.138, -19.178, -9.744 };
 		Vector2 T[NS][7];
 		{
-			double maxx = -1e20, minx = 1e20, maxy = -1e20, miny = 1e20;
+			float maxx = -1e20, minx = 1e20, maxy = -1e20, miny = 1e20;
 			for (int i = 0; i < NS; i++)
 			{
 				if (ix[i] > maxx)maxx = ix[i];
@@ -2232,11 +2323,11 @@ namespace fsl
 				if (iy[i] > maxy)maxy = iy[i];
 				if (iy[i] < miny)miny = iy[i];
 			}
-			double sx = (maxx + minx) / 2.0, sy = (maxy + miny) / 2.0;
+			float sx = (maxx + minx) / 2.0, sy = (maxy + miny) / 2.0;
 			for (int i = 0; i < NS; i++)
 			{
-				ix[i] += VoxelX / 2.0 - sx;
-				iy[i] += VoxelY / 2.0 - sy;
+				ix[i] += - sx;
+				iy[i] += - sy;
 			}
 			maxx = -1e20; minx = 1e20; maxy = -1e20; miny = 1e20;
 			for (int i = 0; i < NS; i++)
@@ -2250,7 +2341,7 @@ namespace fsl
 		}
 
 
-		double boost = 4, bsize = boost / VoxelS;
+		float boost = 2, bsize = boost / VoxelS;
 		int varcount = framecount + 1;
 		unsigned char **variant = new uch*[framecount + 1];
 		for (int i = 0; i < framecount + 1; i++)
@@ -2259,14 +2350,14 @@ namespace fsl
 		for (int i = 1; i < framecount + 1; i++) for (int j = 0; j < framecount; j++) variant[i][j] = (j == i - 1) ? 0 : 1;
 
 		Vector3 P;
-		double r, xA, yA, xB, yB, fi, q;
+		float r, xA, yA, xB, yB, fi, q;
 
 #ifdef GetFirstVoxelDebug
 
 		cv::Mat Base(200, 100 * 4, CV_8U), Base2(immaxX, immaxY * framecount, CV_8U), d1, d2, d3, d4;
 		cv::Mat VoxelL(VoxelX, VoxelY, CV_8U);
-		double KS = 43.26661530556787151743 / sqrt(200 * 200 + 100 * 100);
-		double focus = 20;
+		float KS = 43.26661530556787151743 / sqrt(200 * 200 + 100 * 100);
+		float focus = 20;
 		Vector3 Cams[4][4], XS[4], YS[4], ZS[4];
 		for (int i = 0; i < 4; i++) { XS[i].x = 1; YS[i].y = 1; ZS[i].z = 1; }
 		Cams[0][0] = Vector3(500, 0, 100); Cams[0][3] = Vector3(0, 0, 100) - Cams[0][0]; Cams[0][3].SetLenght(1);
@@ -2323,7 +2414,7 @@ namespace fsl
 			Vector3 base(0,0,100);
 			int by = 100 * u;
 			base.x -= Cams[u][0].x; base.y -= Cams[u][0].y; base.z -= Cams[u][0].z;
-			double r = focus / KS / (base * Cams[u][3]);
+			float r = focus / KS / (base * Cams[u][3]);
 			base = Vector3(base * Cams[u][1] * r + 200 / 2, base * Cams[u][2] * r + 100 / 2, focus / KS);
 			if (base.x >= 0 && base.x <= 199 && base.y >= 0 && base.y <= 99)
 				base.z = 1;
@@ -2338,15 +2429,15 @@ namespace fsl
 #endif // GetFirstVoxelDebug
 
 
-		for (int i = 0; i < NS; i++)
+		for (int i1 = 1, i0 = 0, i2 = 2; i0 < NS; i0++, i1 = (i1 == NS - 1) ? 0 : i1 + 1, i2 = (i2 == NS - 1) ? 0 : i2 + 1)
 		{
-			T[i][0].x = ix[i];
-			T[i][0].y = iy[i];
-			xA = ix[i]; yA = iy[i];
+			T[i1][0].x = ix[i1];
+			T[i1][0].y = iy[i1];
+			xA = ix[i1]; yA = iy[i1];
 			xB = 1;
-			yB = -(ix[i + 1] - ix[i - 1]) / (iy[i + 1] - iy[i - 1] + 1e-20);
+			yB = -(ix[i2] - ix[i0]) / (iy[i2] - iy[i0] + 1e-20);
 			fi = sqrt(xB * xB + yB * yB);
-			q = (ix[i + 1] - ix[i - 1])*(yB)-(iy[i + 1] - iy[i - 1])*(xB);
+			q = (ix[i2] - ix[i0])*(yB)-(iy[i2] - iy[i0])*(xB);
 			for (int j = 0, _j = -3; j < 7; j++, _j++)
 			{
 
@@ -2355,35 +2446,38 @@ namespace fsl
 				if (abs(_j) == 3)  r = 8.5;
 				if (_j != 0)
 				{
-					T[i][j].x = xA + xB / fi * r*_j*(-q / abs(_j*q));
-					T[i][j].y = yA + yB / fi * r*_j*(-q / abs(_j*q));
+					T[i1][j].x = xA + xB / fi * r*_j*(-q / abs(_j*q));
+					T[i1][j].y = yA + yB / fi * r*_j*(-q / abs(_j*q));
 				}
 				else
 				{
-					T[i][j].x = xA;
-					T[i][j].y = yA;
+					T[i1][j].x = xA;
+					T[i1][j].y = yA;
 				}
 			}
 		}
 		delete[] ix; delete[] iy;
 		int best = 0;
-		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) voxel.USGet(x, y, z) = 1;
-		double *KritsVar = new double[varcount];
-		double *dXbb = new double[varcount], *dYbb = new double[varcount], *dSbb = new double[varcount], *dYSbb = new double[varcount], *dFIbb = new double[varcount];
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) USGetVoxel(x, y, z) = 1;
+		float *KritsVar = new float[varcount];
+		float *dXbb = new float[varcount], *dYbb = new float[varcount], *dSbb = new float[varcount], *dYSbb = new float[varcount], *dFIbb = new float[varcount];
 		int *oreinVar = new int[varcount];
 		for (int u = 0; u < varcount; u++)			// Поиск лучшего
 		{
-			int z = 7;
+			int z = 5;
 			int size = 0;
 			for (int k = 0; k < framecount; k++) if (variant[u][k] == 1)
 			{
-				for (int x = 0; x < VoxelX; x += bsize) for (int y = 0; y < VoxelY; y += bsize) if (voxel.USGet(x, y, u) == 1)
+				for (int x = 0; x < VoxelX; x += bsize) for (int y = 0; y < VoxelY; y += bsize) if (USGetVoxel(x, y, u) == 1)
 				{
 					P.x = (x - VoxelX / 2.0) * VoxelS; P.y = (y - VoxelY / 2.0) * VoxelS; P.z = -z;
-					ToCam(P, k);
-					if (counter[k].Get((int)P.x, (int)P.y) == 0) for (int i = 0; i < bsize; i++)for (int j = 0; j < bsize; j++)
+					ToCam(P, cams[k][0], cams[k][1], cams[k][2], cams[k][3], focuss[k], K)
+					//P.x += cams[k][0].x; P.y += cams[k][0].y; P.z += cams[k][0].z;
+					//float r = focuss[k] / K / (P * cams[k][3]);
+					//P = Vector3(P * cams[k][1] * r + immaxX / 2, P * cams[k][2] * r + immaxY / 2, focuss[k] / K);
+					if (counter[k]GetI((int)P.x, (int)P.y) == 0) for (int i = 0; i < bsize; i++)for (int j = 0; j < bsize; j++)
 					{
-						voxel.USGet(x + i, y + j, u) = 0;
+						USGetVoxel(x + i, y + j, u) = 0;
 #ifdef GetFirstVoxelDebug
 						VoxelL.at<uch>(x + i, y + j) = 0;
 #endif // GetFirstVoxelDebug
@@ -2406,46 +2500,64 @@ namespace fsl
 
 
 			KritsVar[u] = -1e20;
-			for (int E = 0; E < 60; E++)
+			int MaxE = 100;
+			for (int E = 0; E < MaxE; E++)
 			{
-				double KritB = -1e20;
-				double dX0 = 30, dX1 = 120, dY0 = 20, dY1 = 90, dS0 = 0.6, dS1 = 1.6, dYS0 = 0.6, dYS1 = 1.6, dFI0 = -PI / 6.0, dFI1 = PI / 6.0;
-				double dX, dY, dS, dYS, dFI;
-				double dXb, dYb, dSb, dYSb, dFIb;
-				double tx, ty, t, si, co;
+				float KritB = -1e20;
+				float dX0 = -40, dX1 = 40, dY0 = -25, dY1 = 25, dS0 = 0.6, dS1 = 1.6, dYS0 = 0.6, dYS1 = 1.6, dFI0 = -PI / 6.0, dFI1 = PI / 6.0;
+				float dX, dY, dS, dYS, dFI;
+				float dXb, dYb, dSb, dYSb, dFIb;
+				float tx, ty, t, si, co;
 				int ore = 0;
 				for (int I = 0; I < 300; I++)
 				{
-					dX = dX0 + random * (dX1 - dX0);
-					dY = dY0 + random * (dY1 - dY0);
-					dS = dS0 + random * (dS1 - dS0);
-					dYS = dYS0 + random * (dYS1 - dYS0);
-					dFI = dFI0 + random * (dFI1 - dFI0);
-					if ((I + 1) % 10 == 0)
+					if (I > 1)
 					{
-						if (dXb * 2 < dX0 + dX1) dX1 = dX0 + 0.9 * (dX1 - dX0); else dX0 = dX0 + 0.9 * (dX1 - dX0);
-						if (dYb * 2 < dY0 + dY1) dY1 = dY0 + 0.9 * (dY1 - dY0); else dY0 = dY0 + 0.9 * (dY1 - dY0);
-						if (dSb * 2 < dS0 + dS1) dS1 = dS0 + 0.9 * (dS1 - dS0); else dS0 = dS0 + 0.9 * (dS1 - dS0);
-						if (dYSb * 2 < dYS0 + dYS1) dYS1 = dYS0 + 0.9 * (dYS1 - dYS0); else dYS0 = dYS0 + 0.9 * (dYS1 - dYS0);
-						if (dFIb * 2 < dFI0 + dFI1) dFI1 = dFI0 + 0.9 * (dFI1 - dFI0); else dFI0 = dFI0 + 0.9 * (dFI1 - dFI0);
+						dX = dX0 + random * (dX1 - dX0);
+						dY = dY0 + random * (dY1 - dY0);
+						dS = dS0 + random * (dS1 - dS0);
+						dYS = dYS0 + random * (dYS1 - dYS0);
+						dFI = dFI0 + random * (dFI1 - dFI0);
+						if ((I) % 10 == 0)
+						{
+							if (abs(dXb - (dX0 + dX1) * 0.5) / abs(dX0 - dX1) > 0.05) if (dXb * 2 < dX0 + dX1) dX1 = dX0 + 0.9 * (dX1 - dX0); else dX0 = dX0 + 0.9 * (dX1 - dX0);
+							if (abs(dYb - (dY0 + dY1) * 0.5) / abs(dY0 - dY1) > 0.05) if (dYb * 2 < dY0 + dY1) dY1 = dY0 + 0.9 * (dY1 - dY0); else dY0 = dY0 + 0.9 * (dY1 - dY0);
+							if (abs(dSb - (dS0 + dS1) * 0.5) / abs(dS0 - dS1) > 0.05) if (dSb * 2 < dS0 + dS1) dS1 = dS0 + 0.9 * (dS1 - dS0); else dS0 = dS0 + 0.9 * (dS1 - dS0);
+							if (abs(dYSb - (dYS0 + dYS1) * 0.5) / abs(dYS0 - dYS1) > 0.05) if (dYSb * 2 < dYS0 + dYS1) dYS1 = dYS0 + 0.9 * (dYS1 - dYS0); else dYS0 = dYS0 + 0.9 * (dYS1 - dYS0);
+							if (abs(dFIb - (dFI0 + dFI1) * 0.5) / abs(dFI0 - dFI1) > 0.05) if (dFIb * 2 < dFI0 + dFI1) dFI1 = dFI0 + 0.9 * (dFI1 - dFI0); else dFI0 = dFI0 + 0.9 * (dFI1 - dFI0);
+						}
+					}
+					else
+					{
+						dX = 0;
+						dY = 0;
+						dS = 1;
+						dYS = 1;
+						dFI = 0;
 					}
 
-					si = sin(dFI);
-					co = cos(dFI);
+					si = t_sin(dFI);
+					co = t_cos(dFI);
 
-					double Kr = 0;
+					float Kr = 0;
 
 					for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
 					{
 						tx = T[i][j].x * dS;
-						ty = T[i][j].y * dS * dYS * ((E < 30) ? 1 : -1);
+						ty = T[i][j].y * dS * dYS * ((E < MaxE / 2) ? 1 : -1);
 						t = tx;
-						tx = dX + t * co - ty * si;
-						ty = dY + t * si + ty * co;
-						Kr += ((voxel.Get(u, (int)tx, (int)ty) > 0) ? 1 : 0) * _j / (abs(_j));
+						tx = dX + t * co - ty * si + VoxelX / 2.0;
+						ty = dY + t * si + ty * co + VoxelY / 2.0;
+						if(tx >= 0 && tx <= VoxelX - 1 && ty >= 0 && ty <= VoxelY - 1)
+						{
+							t = GetVoxel((int)tx, (int)ty, u);
+							Kr += (t ? 1 : 0) * _j / (abs(_j));
+						}
 					}
-					t = 4600 * dS * dS * dYS; t = 1 - (2 * abs(t - size) / (t + size)); t = t * t*t*t;
+					t = 4600 * dS * dS * dYS;
+					t = 1 - (2 * abs(t - size) / (t + size)); t = t * t*t*t;
 					Kr *= t;
+
 					if (Kr > KritB)
 					{
 						KritB = Kr;
@@ -2469,20 +2581,20 @@ namespace fsl
 
 #ifdef GetFirstVoxelDebug
 					{
-						for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)VoxelL.at<uch>(x, y) = (voxel.USGet(x,y,u) > 0) ? 75 : 0;
-						double si = sin(dFIbb[best]);
-						double co = cos(dFIbb[best]);
-						double tx, ty, t;
+						for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)VoxelL.at<uch>(x, y) = (USGetVoxel(x,y,u) > 0) ? 75 : 0;
+						float si = t_sin(dFIbb[u]);
+						float co = t_cos(dFIbb[u]);
+						float tx, ty, t;
 						for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
 						{
-							tx = T[i][j].x * dSbb[best];
-							ty = T[i][j].y * dSbb[best] * dYSbb[best] * oreinVar[best];
+							tx = T[i][j].x * dSbb[u];
+							ty = T[i][j].y * dSbb[u] * dYSbb[u] * oreinVar[u];
 							t = tx;
-							tx = dXbb[best] + t * co - ty * si;
-							ty = dYbb[best] + t * si + ty * co;
+							tx = dXbb[u] + t * co - ty * si + VoxelX / 2.0;
+							ty = dYbb[u] + t * si + ty * co + VoxelY / 2.0;
 							tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 							ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
-							VoxelL.at<uch>(tx, ty) = 255 / (1 + _j * 0.5);
+							VoxelL.at<uch>(tx, ty) = 255 / (1 + abs(_j) * 0.5);
 						}
 
 						cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
@@ -2496,34 +2608,33 @@ namespace fsl
 
 #ifdef GetFirstVoxelDebug
 		{
-		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)VoxelL.at<uch>(x, y) = (voxel.USGet(x, y, best) > 0) ? 75 : 0;
-		double si = sin(dFIbb[best]);
-		double co = cos(dFIbb[best]);
-		double tx, ty, t;
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)VoxelL.at<uch>(x, y) = (USGetVoxel(x, y, best) > 0) ? 75 : 0;
+		float si = t_sin(dFIbb[best]);
+		float co = t_cos(dFIbb[best]);
+		float tx, ty, t;
 		for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
 		{
 			tx = T[i][j].x * dSbb[best];
 			ty = T[i][j].y * dSbb[best] * dYSbb[best] * oreinVar[best];
 			t = tx;
-			tx = dXbb[best] + t * co - ty * si;
-			ty = dYbb[best] + t * si + ty * co;
+			tx = dXbb[best] + t * co - ty * si + VoxelX / 2.0;
+			ty = dYbb[best] + t * si + ty * co + VoxelY / 2.0;
 			tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 			ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
-			VoxelL.at<uch>(tx, ty) = 255 / (1 + _j * 0.5);
+			VoxelL.at<uch>(tx, ty) = 255 / (1 + abs(_j) * 0.5);
 		}
 
 		cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
 		cv::waitKey(1);
 		}
 #endif // GetFirstVoxelDebug
-
 		for (int i = 0; i < varcount; i++) KritsVar[i] *= ((i > 1 && i < framecount + 1) ? 0.94 : ((i == 1) ? 1 : 0.88)) * ((variant[i][0] == 0) ? 0.96 : 1)* ((variant[i][framecount - 1] == 0) ? 0.96 : 1) * ((variant[i][framecount / 2 + 1] == 0) ? 0.94 : 1);
 
 		best = 0;
 
 		for (int i = 0; i < varcount; i++)if (KritsVar[best] < KritsVar[i]) best = i;
 
-		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) voxel.USGet(x, y, z) = 1;
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) USGetVoxel(x, y, z) = 1;
 
 #ifdef DebugConsole
 		std::cout << "SelectBestDone" << std::endl;
@@ -2537,18 +2648,22 @@ namespace fsl
 			Vector3 P2, base;
 #endif // GetFirstVoxelDebug
 #ifdef DebugConsole
+			auto cnt = counter[k];
 			float lastSay = 0, dsay = VoxelX * VoxelY * VoxelZ / 10.0, pc = 0;
 #endif // DEBUG
-			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) if (USGetVoxel(x, y, z) == 1)
 			{
 				P.x = (x - VoxelX / 2.0) * VoxelS; P.y = (y - VoxelY / 2.0) * VoxelS; P.z = -(z) * VoxelS;
 #ifdef GetFirstVoxelDebug
 				P2 = P;
 #endif // GetFirstVoxelDebug
-				ToCam(P, k);
-				if (voxel.USGet(x, y, z) == 1) if (counter[k].Get((int)P.x, (int)P.y) == 0)
+				ToCam(P, cams[k][0], cams[k][1], cams[k][2], cams[k][3], focuss[k], K)
+				//P.x += cams[k][0].x; P.y += cams[k][0].y; P.z += cams[k][0].z;
+				//float r = focuss[k] / K / (P * cams[k][3]);
+				//P = Vector3(P * cams[k][1] * r + immaxX / 2, P * cams[k][2] * r + immaxY / 2, focuss[k] / K);
+				if (cnt GetI((int)P.x, (int)P.y) == 0)
 				{
-					voxel.USGet(x, y, z) = 0;
+					USGetVoxel(x, y, z) = 0;
 				}
 #ifdef GetFirstVoxelDebug
 				else
@@ -2558,7 +2673,7 @@ namespace fsl
 						base = P2;
 						int by = 100 * u;
 						base.x += Cams[u][0].x; base.y += Cams[u][0].y; base.z += Cams[u][0].z;
-						double r = focus / KS / (base * Cams[u][3]);
+						float r = focus / KS / (base * Cams[u][3]);
 						base = Vector3(base * Cams[u][1] * r + 200 / 2, base * Cams[u][2] * r + 100 / 2, focus / KS);
 						if (base.x >= 0 && base.x <= 199 && base.y >= 0 && base.y <= 99)
 							d1.at<uch>((int)base.x, (int)base.y + by) = 255;
@@ -2619,17 +2734,20 @@ namespace fsl
 
 	void ClearVoxel()
 	{
-		for (int x = 1; x < VoxelX - 1; x++)for (int y = 1; y < VoxelY - 1; y++)for (int z = 1; z < VoxelZ - 1; z++) if (voxel.USGet(x, y, z) == 1)
+		for (int x = 1; x < VoxelX - 1; x++)for (int y = 1; y < VoxelY - 1; y++)for (int z = 1; z < VoxelZ - 1; z++) if (USGetVoxel(x, y, z) == 1)
 		{
-			for (int i = -1; i < 2; i++)for (int j = -1; j < 2; j++)for (int k = -1; k < 2; k++)if (voxel.USGet(x, y, z) >= 13) if (voxel.USGet(x + i, y + j, z + k) == 1)
-				voxel.USGet(x, y, z) += 1;
-			voxel.USGet(x, y, z) -= 1;
+			for (int i = -1; i < 2; i++)for (int j = -1; j < 2; j++)for (int k = -1; k < 2; k++)if (USGetVoxel(x, y, z) >= 13) if (USGetVoxel(x + i, y + j, z + k) == 1)
+				USGetVoxel(x, y, z) += 1;
+			USGetVoxel(x, y, z) -= 1;
 		}
-		for (int x = 1; x < VoxelX - 1; x++)for (int y = 1; y < VoxelY - 1; y++)for (int z = 1; z < VoxelZ - 1; z++) if (voxel.USGet(x, y, z) >= 12) voxel.USGet(x, y, z) = 1; else voxel.USGet(x, y, z) = 0;
+		for (int x = 1; x < VoxelX - 1; x++)for (int y = 1; y < VoxelY - 1; y++)for (int z = 1; z < VoxelZ - 1; z++) if (USGetVoxel(x, y, z) >= 12) USGetVoxel(x, y, z) = 1; else USGetVoxel(x, y, z) = 0;
 	}
 
 	void BestStopa()
 	{
+#ifdef DebugConsole
+		std::cout << "BestStopa" << std::endl;
+#endif // DEBUG
 		std::vector<Vector3*> &ch = males, correct;
 		std::vector<int> &chsizes = malesizes;
 		if (!ismale)
@@ -2645,27 +2763,31 @@ namespace fsl
 			correct.push_back(t);
 		}
 
-		double *kriteries = new double[ch.size()];
-		double *koof = new double[ch.size()];
+		float *kriteries = new float[ch.size()];
+		float *koof = new float[ch.size()];
 
 		Vector2 chablon[30][7];
 
 		for (int n = 0; n < ch.size(); n++)			// поиск критериев
 		{
 
-			double maxX = -1e20, maxY = 1e20, minX = 1e20, minY = -1e20;
+			float maxX = -1e20, maxY = -1e20, minX = 1e20, minY = 1e20;
 			for (int i = 0; i < chsizes[n]; i++)
 			{
 				if (ch[n][i].z < 30)
 				{
-					if (ch[n][i].x < minX) minX = ch[n][i].x;
-					if (ch[n][i].x > maxX) maxX = ch[n][i].x;
-					if (ch[n][i].y < minY) minY = ch[n][i].y;
-					if (ch[n][i].y > maxY) maxY = ch[n][i].y;
+					if (ch[n][i].x < minX && ch[n][i].x > -1000)
+						minX = ch[n][i].x;
+					if (ch[n][i].x > maxX && ch[n][i].x < 1000)
+						maxX = ch[n][i].x;
+					if (ch[n][i].y < minY && ch[n][i].y > -1000)
+						minY = ch[n][i].y;
+					if (ch[n][i].y > maxY && ch[n][i].y < 1000)
+						maxY = ch[n][i].y;
 				}
 			}
 
-			for (int k = 0; k < 30; k++)
+ 			for (int k = 0; k < 30; k++)
 			{
 				chablon[k][3].x = ch[n][k].x;
 				chablon[k][3].y = ch[n][k].y;
@@ -2675,14 +2797,16 @@ namespace fsl
 			for3(30)
 			{
 				Vector2 Y = chablon[i2][3] - chablon[i0][3]; Y.SetLenght(1);
-				double t = Y * chablon[i1][3];
-				Vector2 X(Y.y, -(t + Y.x)); X.SetLenght(1);
+				float t = Y * chablon[i1][3];
+				Vector2 X(1, (t - Y.x) / Y.y);
+				X = Vector2(X.x - chablon[i1][3].x, X.y - chablon[i1][3].y);
+				X.SetLenght(1);
 				if (X * Y < 0) X = X * -1;
-				for (int i = -3; i <= 3; i++) if (i != 0)
-					chablon[i1][i] = chablon[i1][0] + X * 2.0 * i;
+				for (int i = -3, _i = 0; i <= 3; i++, _i++) if (i != 0)
+					chablon[i1][_i] = chablon[i1][3] + X * 2.0 * i;
 			}
 
-			double G11 = -40, G12 = 40, G21 = -30, G22 = 30, G31 = -25 / 180 * PI, G32 = 25 / 180 * PI, G41 = 0.7, G42 = 1.3, Kritb = -1e20, xb, yb, fib, zb, r, co, si;
+			float G11 = -40, G12 = 40, G21 = -30, G22 = 30, G31 = -25 / 180 * PI, G32 = 25 / 180 * PI, G41 = 0.7, G42 = 1.3, Kritb = -1e20, xb, yb, fib, zb, r, co, si;
 
 			Vector2 Cen;
 			Vector2 P;
@@ -2696,7 +2820,7 @@ namespace fsl
 
 			for (int E = 0; E < 100; E++)
 			{
-				double x, y, fi, z;
+				float x, y, fi, z;
 				for (int I = 0; I < 120; I++)
 				{
 					x = G11 + random * (G12 - G11);
@@ -2704,9 +2828,9 @@ namespace fsl
 					fi = G31 + random * (G32 - G31);
 					z = G41 + random * (G42 - G41);
 					P = Vector2(x, y);
-					co = cos(fi);
+					co = t_cos(fi);
 					si = sqrt(1 - co * co);
-					double Kr = 0;
+					float Kr = 0;
 					for (int i = 0; i < 30; i++)
 					{
 						for (int j = 0; j < 7; j++)
@@ -2718,10 +2842,10 @@ namespace fsl
 						{
 							for (int z = 0; z < 20; z++)
 							{
-								temp = voxel.Get((int)used[i][j1].x, (int)used[i][j1].y, z);
+								temp = GetVoxel((int)used[i][j1].x, (int)used[i][j1].y, z);
 								if (temp > 0)
 								{
-									Kr += (temp - voxel.Get((int)used[i][j2].x, (int)used[i][j2].y, z)) * (1 + j1) * 0.25;
+									Kr += (temp - GetVoxel((int)used[i][j2].x, (int)used[i][j2].y, z)) * (1 + j1) * 0.25;
 									z = 21;
 								}
 							}
@@ -2751,7 +2875,7 @@ namespace fsl
 			kriteries[n] = Kritb;
 
 			Vector3 Cen3(Cen.x, Cen.y, 0), P3(xb, yb, 0);
-			co = cos(fib);
+			co = t_cos(fib);
 			si = sqrt(1 - co * co);
 			for (int i = 0; i < chsizes[n]; i++)
 			{
@@ -2759,7 +2883,7 @@ namespace fsl
 				correct[n][i] = Cen3 + P3 + Vector3(correct[n][i].x * co - correct[n][i].y * si, correct[n][i].x * si + correct[n][i].y * co, correct[n][i].z);
 			}
 
-			double x0, x1, z0, z1;
+			float x0, x1, z0, z1;
 
 			int len[VoxelZ];
 
@@ -2773,7 +2897,7 @@ namespace fsl
 				for (int z = 0; z < VoxelZ; z++)
 				{
 					len[z] = 0;
-					for (int y = 0; y < VoxelY; y++) if (voxel.USGet(x, y, z) > 0) len[z]++;
+					for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, z) > 0) len[z]++;
 					if (len[z] > max)
 					{
 						max = len[z];
@@ -2782,18 +2906,18 @@ namespace fsl
 				}
 				for (int z = 0; z < VoxelZ; z++) if (len[z] > max * 0.7) { z0 = (z > VoxelZ / 3.0) ? 0 : z; break; }
 
-				double irad = 0, counteroflenght = 0;
+				float irad = 0, counteroflenght = 0;
 
 				for (int i = 0; i < chsizes[n]; i++) if (correct[n][i].x > x0 && correct[n][i].x < x1 && correct[n][i].z > z0 && correct[n][i].z < z1)
 				{
-					uch base = voxel.Get(correct[n][i].y, correct[n][i].y, correct[n][i].y);
+					uch base = GetVoxel((int)correct[n][i].y, (int)correct[n][i].y, (int)correct[n][i].y);
 					for (int rad = 0; rad < 30; rad++)
 					{
 						int V = 0, V2 = 0;
 						for (int _x = -rad, rad2 = 0; _x <= rad; _x++, rad2 = sqrt(rad * rad - _x * _x)) for (int _y = -rad2, rad3 = 0; _y <= rad2; _y++, rad3 = sqrt(rad * rad - _x * _x - _y * _y)) for (int _z = -rad3; _z <= rad3; _z++)
 						{
 							V++;
-							if (voxel.Get(correct[n][i].x + _x, correct[n][i].y + _y, correct[n][i].z + _z) == base) V2++;
+							if (GetVoxel((int)correct[n][i].x + _x, (int)correct[n][i].y + _y, (int)correct[n][i].z + _z) == base) V2++;
 						}
 						if (V != V2)
 						{
@@ -2805,14 +2929,14 @@ namespace fsl
 					}
 				}
 				if (counteroflenght != 0)
-					irad /= (double)counteroflenght;
+					irad /= (float)counteroflenght;
 				irad = 16 / (irad + 1e-6);
 				if (irad > 1000)irad = 1000;
 				kriteries[n] += irad;
 			}
 		}
 
-		double maxkrit = kriteries[0], minkrit = kriteries[0];
+		float maxkrit = kriteries[0], minkrit = kriteries[0];
 
 		for (int n = 1; n < ch.size(); n++)
 		{
@@ -2820,7 +2944,7 @@ namespace fsl
 			if (minkrit > kriteries[n])minkrit = kriteries[n];
 		}
 
-		double summ = 0;
+		float summ = 0;
 
 		for (int n = 0; n < ch.size(); n++)
 		{
@@ -2852,22 +2976,26 @@ namespace fsl
 
 		kriteries[maxn2] = 0.1667;
 
+#ifdef DebugConsole
+		std::cout << "SelectBestBaseEnd" << std::endl;
+#endif // DEBUG
+
 		int stx = 150;
 
 		for (int i = VoxelX - 1, r = 0; i >= 0; i++, r = 0)
 		{
-			for (int j = 0; j < VoxelY; j++) for (int k = min(0.8 * VoxelZ, 140 * VoxelS); k < VoxelZ; k++) if (voxel.USGet(i, j, k) == 1) r = 1;
+			for (int j = 0; j < VoxelY; j++) for (int k = min_f(0.8 * VoxelZ, 140 * VoxelS); k < VoxelZ; k++) if (USGetVoxel(i, j, k) == 1) r = 1;
 			if (r == 1) { stx = i + 2; break; }
 		}
 
-		for (int x = stx; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) for (int z = VoxelZ - 1; z <= 0; z--) if (voxel.USGet(x, y, z) > 0)
+		for (int x = stx; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) for (int z = VoxelZ - 1; z <= 0; z--) if (USGetVoxel(x, y, z) > 0)
 		{
-			double TZ = 0;
+			float TZ = 0;
 			for (int n = 0; n < ch.size(); n++) if (kriteries[n] > 1e-3)
 			{
 #define trpcount 3
 				int points[trpcount];
-				double rads[trpcount + 1], r, k = 0, w;
+				float rads[trpcount + 1], r, k = 0, w;
 				rads[0] = 0;
 				for (int h = 0; h < trpcount; h++)
 				{
@@ -2898,12 +3026,12 @@ namespace fsl
 			if (TZ > z)
 			{
 				for (int i = z; i < TZ + 1; i++)
-					voxel.Get(x, y, i) = 1;
+					GetVoxel(x, y, i) = 1;
 			}
 			if (TZ < z)
 			{
 				for (int i = TZ + 1; i <= z; i++)
-					voxel.Get(x, y, i) = 0;
+					GetVoxel(x, y, i) = 0;
 			}
 		}
 
@@ -2911,6 +3039,10 @@ namespace fsl
 		{
 			delete[] correct[i];
 		}
+
+#ifdef DebugConsole
+		std::cout << "UpgradeEnd" << std::endl;
+#endif // DEBUG
 		correct.clear();
 		delete[]kriteries;
 	}
@@ -2926,8 +3058,8 @@ namespace fsl
 
 		cv::Mat Base(200, 100 * 4, CV_8U), Base2(VoxelX, VoxelY, CV_8U), d1, d2, d3, d4;
 		cv::Mat VoxelL(VoxelX, VoxelY, CV_8U);
-		double KS = 43.26661530556787151743 / sqrt(200 * 200 + 100 * 100);
-		double focus = 20;
+		float KS = 43.26661530556787151743 / sqrt(200 * 200 + 100 * 100);
+		float focus = 20;
 		Vector3 Cams[4][4], XS[4], YS[4], ZS[4];
 		for (int i = 0; i < 4; i++) { XS[i].x = 1; YS[i].y = 1; ZS[i].z = 1; }
 		Cams[0][0] = Vector3(500, 0, 100); Cams[0][3] = Vector3(0, 0, 100) - Cams[0][0]; Cams[0][3].SetLenght(1);
@@ -2965,17 +3097,17 @@ namespace fsl
 			Vector3 base(0, 0, 100);
 			int by = 100 * u;
 			base.x -= Cams[u][0].x; base.y -= Cams[u][0].y; base.z -= Cams[u][0].z;
-			double r = focus / KS / (base * Cams[u][3]);
+			float r = focus / KS / (base * Cams[u][3]);
 			base = Vector3(base * Cams[u][1] * r + 200 / 2, base * Cams[u][2] * r + 100 / 2, focus / KS);
 			if (base.x >= 0 && base.x <= 199 && base.y >= 0 && base.y <= 99)
 				base.z = 1;
 		}
 
 #endif // BestTopDebug
-		double *ix = new double[NS] { -120.415, -118.223, -107.241, -92.491, -76.224, -59.869, -43.488, -27.181, -10.797, 5.474, 21.693, 37.937, 54.23, 70.581, 86.815, 102.924, 118.374, 126.633, 123.11, 114.115, 102.974, 89.941, 76.335, 61.995, 45.691, 29.353, 13.098, -3.187, -19.441, -35.626, -51.862, -68.153, -84.333, -99.562, -112.899 };
-		double *iy = new double[NS] { 4.29, 20.134, 32.102, 38.86, 40.352, 40.602, 40.873, 42.078, 41.615, 43.627, 46.018, 48.231, 50.013, 50.06, 47.825, 46.354, 40.912, 27.898, 12.412, -1.136, -13.152, -22.505, -31.278, -38.64, -40.317, -40.481, -38.396, -36.517, -34.39, -31.79, -29.515, -27.687, -25.138, -19.178, -9.744 };
+		float *ix = new float[NS] { -120.415, -118.223, -107.241, -92.491, -76.224, -59.869, -43.488, -27.181, -10.797, 5.474, 21.693, 37.937, 54.23, 70.581, 86.815, 102.924, 118.374, 126.633, 123.11, 114.115, 102.974, 89.941, 76.335, 61.995, 45.691, 29.353, 13.098, -3.187, -19.441, -35.626, -51.862, -68.153, -84.333, -99.562, -112.899 };
+		float *iy = new float[NS] { 4.29, 20.134, 32.102, 38.86, 40.352, 40.602, 40.873, 42.078, 41.615, 43.627, 46.018, 48.231, 50.013, 50.06, 47.825, 46.354, 40.912, 27.898, 12.412, -1.136, -13.152, -22.505, -31.278, -38.64, -40.317, -40.481, -38.396, -36.517, -34.39, -31.79, -29.515, -27.687, -25.138, -19.178, -9.744 };
 		{
-			double maxx = -1e20, minx = 1e20, maxy = -1e20, miny = 1e20;
+			float maxx = -1e20, minx = 1e20, maxy = -1e20, miny = 1e20;
 			for (int i = 0; i < NS; i++)
 			{
 				if (ix[i] > maxx)maxx = ix[i];
@@ -2983,11 +3115,11 @@ namespace fsl
 				if (iy[i] > maxy)maxy = iy[i];
 				if (iy[i] < miny)miny = iy[i];
 			}
-			double sx = (maxx + minx) / 2.0, sy = (maxy + miny) / 2.0;
+			float sx = (maxx + minx) / 2.0, sy = (maxy + miny) / 2.0;
 			for (int i = 0; i < NS; i++)
 			{
-				ix[i] += VoxelX / 2.0 - sx;
-				iy[i] += VoxelY / 2.0 - sy;
+				ix[i] += - sx;
+				iy[i] += - sy;
 			}
 			maxx = -1e20; minx = 1e20; maxy = -1e20; miny = 1e20;
 			for (int i = 0; i < NS; i++)
@@ -3001,16 +3133,17 @@ namespace fsl
 		}
 		Vector2 T[NS][7];
 		Vector2 TT[NS][7];
-		double r, xA, yA, xB, yB, fi, q;
-		for (int i = 0; i < NS; i++)
+		float r, xA, yA, xB, yB, fi, q;
+		for3(NS)
 		{
-			T[i][0].x = ix[i];
-			T[i][0].y = iy[i];
-			xA = ix[i]; yA = iy[i];
-			xB = 1;
-			yB = -(ix[i + 1] - ix[i - 1]) / (iy[i + 1] - iy[i - 1] + 1e-20);
+			T[i1][3].x = ix[i1];
+			T[i1][3].y = iy[i1];
+			xA = ix[i1]; yA = iy[i1];
+			xB = (iy[i2] - iy[i0]);
+			yB = -(ix[i2] - ix[i0]);
 			fi = sqrt(xB * xB + yB * yB);
-			q = (ix[i + 1] - ix[i - 1])*(yB)-(iy[i + 1] - iy[i - 1])*(xB);
+			yB /= fi; xB /= fi;
+			q = (ix[i2] - ix[i0])*(yB)-(iy[i2] - iy[i0])*(xB);
 			for (int j = 0, _j = -3; j < 7; j++, _j++)
 			{
 
@@ -3019,13 +3152,8 @@ namespace fsl
 				if (abs(_j) == 3)  r = 8.5;
 				if (_j != 0)
 				{
-					T[i][j].x = xA + xB / fi * r*_j*(-q / abs(_j*q));
-					T[i][j].y = yA + yB / fi * r*_j*(-q / abs(_j*q));
-				}
-				else
-				{
-					T[i][j].x = xA;
-					T[i][j].y = yA;
+					T[i1][j].x = xA + xB * r * ((_j * q > 0) ? 1 : -1);
+					T[i1][j].y = yA + yB * r * ((_j * q > 0) ? 1 : -1);
 				}
 			}
 
@@ -3037,22 +3165,42 @@ namespace fsl
 				if (abs(_j) == 3)  r = 1;
 				if (_j != 0)
 				{
-					T[i][j].x = T[i][3].x + (T[i][j].x - T[i][3].x)*r;
-					T[i][j].y = T[i][3].y + (T[i][j].y - T[i][3].y)*r;
+					T[i1][j].x = T[i1][3].x + (T[i1][j].x - T[i1][3].x)*r;
+					T[i1][j].y = T[i1][3].y + (T[i1][j].y - T[i1][3].y)*r;
 				}
 			}
-
-			ix[i] = 1 + 0.002*(i - 17);
-			if ((i == 1) || (i == 2)) ix[i] = ix[i] * 7;
-			else
-				if ((i == 3) || (i == 4) || (i == 33) || (i == 34) || (i == 35)) ix[i] = ix[i] * 4;
 		}
-		delete[]iy; iy = new double[7];
+		for3(NS)
+		{
+			ix[i1] = 1 + 0.002*(i1 - 17);
+			if ((i1 == 1) || (i1 == 2)) ix[i1] = ix[i1] * 7;
+			else
+				if ((i1 == 3) || (i1 == 4) || (i1 == 33) || (i1 == 34) || (i1 == 35)) ix[i1] = ix[i1] * 4;
+		}
+
+#ifdef BestTopDebug
+		{
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)VoxelL.at<uch>(x, y) = 0;
+			float tx, ty, t;
+			for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
+			{
+				tx = T[i][j].x + VoxelX / 2;
+				ty = T[i][j].y + VoxelY / 2;
+				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
+				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
+				VoxelL.at<uch>(tx, ty) = 255 / (2 + _j / 3.0);
+			}
+			cv::imshow("BestTopDebugVoxelLayer", VoxelL);
+			cv::waitKey();
+		}
+#endif // BestTopDebug
+
+		delete[]iy; iy = new float[7];
 		for (int j = 0, _j = -3; j < 7; j++, _j++)
 		{
-			if (_j = 1) iy[j] = 6 / 1.2 * 3;
-			if (_j = 2) iy[j] = 6 / 3.2 * 1;
-			if (_j = 3) iy[j] = 6 / 6 * 0.3;
+			if (abs(_j) == 1) iy[j] = 6 / 1.2 * 3;
+			if (abs(_j) == 2) iy[j] = 6 / 3.2 * 1;
+			if (abs(_j) == 3) iy[j] = 6 / 6 * 0.3;
 		}
 		Voxel blur(VoxelX, VoxelY, 3);
 
@@ -3063,36 +3211,36 @@ namespace fsl
 			blur.USGet(x, y, 2) = 0;
 			if (x != 0 && y != 0 && x != VoxelX - 1 && y != VoxelY - 1)
 			{
-				double t = 0;
+				float t = 0;
 				for (int _x = -1; _x < 2; _x++)for (int _y = -1; _y < 2; _y++)
 				{
-					t += (voxel.USGet(x, y, 5) > 0) ? 255 : 0;
+					t += (USGetVoxel(x, y, 5) > 0) ? 255 : 0;
 				}
 				blur.USGet(x, y, 0) = t / 9.0;
 			}
 		}
-		double	xT, xTb, xTbb, G11, G12,
+		float	xT, xTb, xTbb, G11, G12,
 			yT, yTb, yTbb, G21, G22,
 			zT, zTb, zTbb, G31, G32,
 			fT, fTb, fTbb, G41, G42,
 			zyT, zyTb, zyTbb, G51, G52;
 		int ori, orib, oribb;
-		double KritBB = -1e20;
-		for (int E = 0; E < 22; E++)
+		float KritBB = -1e20;
+		for (int E = 0; E < 30; E++)
 		{
 			ori = (E % 2 == 0) ? 1 : -1;
-			double KritB = -1e20;
+			float KritB = -1e20;
 
 			if (E < 8)
 			{
-				G11 = 55;    G12 = 95;
-				G21 = 35;    G22 = 70;
+				G11 = -20;    G12 = 20;
+				G21 = -20;    G22 = 20;
 				G31 = 0.76;   G32 = 1.4;
 				G41 = -25 / 180 * PI; G42 = 25 / 180 * PI;
 				G51 = 0.7;   G52 = 1.4;
 			}
 
-			if (E > 12)
+			if (E > 15)
 			{
 				ori = oribb;
 				G11 = xTbb - 5;    G12 = xTbb + 5;
@@ -3104,50 +3252,102 @@ namespace fsl
 
 			for (int I = 0; I < 4000; I++)
 			{
-				xT = G11 + random * (G12 - G11);
-				yT = G21 + random * (G22 - G21);
-				zT = G31 + random * (G32 - G31);
-				fT = G41 + random * (G42 - G41);
-				zyT = G51 + random * (G52 - G51);
-				double co = cos(fT), si = sqrt(1 + co * co), fi = zT * zyT * ori, Kr = 0;
-
-				if ((I + 1) % 100 == 0)
+				if (I == 0)
 				{
-					r = 0.96;
-					if (xTb < (G11 + G12) / 2) G12 = G11 + (G12 - G11)*r; else G11 = G12 - (G12 - G11)*r;
-					if (yTb < (G21 + G22) / 2) G22 = G21 + (G22 - G21)*r; else G21 = G22 - (G22 - G21)*r;
-					if (zTb < (G31 + G32) / 2) G32 = G31 + (G32 - G31)*r; else G31 = G32 - (G32 - G31)*r;
-					if (fTb < (G41 + G42) / 2) G42 = G41 + (G42 - G41)*r; else G41 = G42 - (G42 - G41)*r;
-					if (zyTb < (G51 + G52) / 2) G52 = G51 + (G52 - G51)*r; else G51 = G52 - (G52 - G51)*r;
+					if (E < 15)
+					{
+						xT = 0;
+						yT = 0;
+						zT = 1;
+						fT = 0;
+						zyT = 1;
+					}
+					else
+					{
+						xT = xTbb;
+						yT = yTbb;
+						zT = zTbb;
+						fT = fTbb;
+						zyT = zyTbb;
+					}
 				}
+				else
+				{
+					xT = G11 + random * (G12 - G11);
+					yT = G21 + random * (G22 - G21);
+					zT = G31 + random * (G32 - G31);
+					fT = G41 + random * (G42 - G41);
+					zyT = G51 + random * (G52 - G51);
+					if ((I + 1) % 100 == 0)
+					{
+						r = 0.96;
+						if (xTb < (G11 + G12) / 2) G12 = G11 + (G12 - G11)*r; else G11 = G12 - (G12 - G11)*r;
+						if (yTb < (G21 + G22) / 2) G22 = G21 + (G22 - G21)*r; else G21 = G22 - (G22 - G21)*r;
+						if (zTb < (G31 + G32) / 2) G32 = G31 + (G32 - G31)*r; else G31 = G32 - (G32 - G31)*r;
+						if (fTb < (G41 + G42) / 2) G42 = G41 + (G42 - G41)*r; else G41 = G42 - (G42 - G41)*r;
+						if (zyTb < (G51 + G52) / 2) G52 = G51 + (G52 - G51)*r; else G51 = G52 - (G52 - G51)*r;
+					}
+				}
+				float co = t_cos(fT), si = t_sin(fT), fi = zT * zyT * ori, Kr = 0;
 				for (int i = 0; i < NS; i++)
 				{
 					for (int j = 0, _j = -3; j < 7; j++, _j++)
 					{
-						TT[i][j].x = xT + T[i][j].x * zT * co - T[i][j].y * fi * si;
-						TT[i][j].y = yT + T[i][j].x * zT * si + T[i][j].y * fi * co;
+						TT[i][j].x = xT + T[i][j].x * zT * co - T[i][j].y * fi * si + VoxelX / 2.0;
+						TT[i][j].y = yT + T[i][j].x * zT * si + T[i][j].y * fi * co + VoxelY / 2.0;
 					}
-					double Q1 = ix[4] * (blur.Get(TT[i][4].x, TT[i][4].y, 0) - blur.Get(TT[i][2].x, TT[i][2].y, 0))
-						+ ix[5] * (blur.Get(TT[i][5].x, TT[i][5].y, 0) - blur.Get(TT[i][1].x, TT[i][1].y, 0))
-						+ ix[6] * (blur.Get(TT[i][6].x, TT[i][6].y, 0) - blur.Get(TT[i][0].x, TT[i][0].y, 0));
-					double rr = sqrt(sqrt(abs(Q1))) * ix[i];
-					if (Q1 < 0) Kr = Kr - rr; else Kr = Kr + rr;
+					float Q1 = iy[4] * (blur.Get(TT[i][4].x, TT[i][4].y, 0) - blur.Get(TT[i][2].x, TT[i][2].y, 0))
+						+ iy[5] * (blur.Get(TT[i][5].x, TT[i][5].y, 0) - blur.Get(TT[i][1].x, TT[i][1].y, 0))
+						+ iy[6] * (blur.Get(TT[i][6].x, TT[i][6].y, 0) - blur.Get(TT[i][0].x, TT[i][0].y, 0));
+					float rr = sqrt(sqrt(abs(Q1))) * ix[i];
+					if (Q1 > 0) Kr = Kr - rr; else Kr = Kr + rr;
 				}
 				if (Kr > KritB)
 				{
 					KritB = Kr; orib = ori; xTb = xT; yTb = yT; zTb = zT; fTb = fT; zyTb = zyT;
+#ifdef BestTopDebug
+					{
+						float maxx = -1e20, minx = 1e20, maxy = -1e20, miny = 1e20;
+						for (int i = 0; i < NS; i++)
+						{
+							if (TT[i][3].x > maxx)maxx = TT[i][3].x;
+							if (TT[i][3].x < minx)minx = TT[i][3].x;
+							if (TT[i][3].y > maxy)maxy = TT[i][3].y;
+							if (TT[i][3].y < miny)miny = TT[i][3].y;
+						}
+						for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)VoxelL.at<uch>(x, y) = blur.USGet(x, y, 0);
+						float tx, ty, t;
+						for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
+						{
+							tx = TT[i][j].x;
+							ty = TT[i][j].y;
+							tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
+							ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
+							VoxelL.at<uch>(tx, ty) = 255 / (1 + abs(_j) * 0.5);
+						}
+					}
+#endif // BestTopDebug
 				}
 			}
 			if (KritB > KritBB)
 			{
 				KritBB = KritB; oribb = orib; xTbb = xTb; yTbb = yTb; zTbb = zTb; fTbb = fTb; zyTbb = zyTb;
+#ifdef BestTopDebug
+				{
+					cv::imshow("BestTopDebugVoxelLayer", VoxelL);
+					cv::waitKey();
+				}
+#endif // BestTopDebug
 			}
 
 		}
-
+#ifdef DebugConsole
+		std::cout << "ChoseBestEnd" << std::endl;
+#endif // DEBUG
 		// Horror
 		// Записываю координаты по частям Возможно меньше потребуеться памяти
 		int lLen = 5704;
+		fi = zTbb * zyTbb * oribb;
 		Vector3 *LegLeo = new Vector3[lLen];
 		float *LegLeoK = new float[lLen] { -56.6, -57.8, -55.5, -56.6, -56.4, -57.2, -57.3, -57.8, -58.1, -58, -58.3, -58.8, -54.1, -54.7, -55.4, -57, -57.1, -58.5, -56.2, -58.8, -57.5, -59.4, -59, -59.8, -58.7, -60, -51.7, -53.1, -52.3, -55.2, -55.1, -55, -54.1, -55.5, -55.5, -55.7, -55.9, -59.2, -59.4, -59.1, -60.4, -60.3, -50.9, -51.1, -53.6, -53.6, -50.6, -51.8, -54.2, -54.5, -56.2, -56.2, -56.9, -60.3, -59.4, -60.7, -60.3, -60.8, -49, -52.8, -52, -53.4, -50.8, -56.4, -53.6, -58.4, -55.3, -59.5, -58.5, -59.6, -60.9, -59.4, -60.4, -60.7, -48.5, -51.3, -51.6, -51.7, -54.1, -50.4, -51.9, -53.8, -57.9, -56.3, -56.5, -58, -57.9, -59.7, -58.9, -60.3, -45.4, -46.3, -49.9, -47.3, -52.2, -48.9, -53.8, -55, -51.8, -56.9, -57.5, -58.6, -57.8, -58.1, -60.2, -60, -45.1, -46, -45.8, -50.5, -47.2, -53.7, -54.9, -55, -51.9, -52.6, -57.5, -55.3, -56.6, -56, -58.5, -58.6, -60, -59.4, -41.5, -44.4, -47.2, -44.9, -46.7, -48.1, -54.3, -55.1, -51.7, -56.9, -55.2, -56.1, -59.1, -59.8, -59.2, -46.7, -45.9, -41.6, -43.7, -44.5, -46.5, -52, -53.8, -51.1, -52.5, -56.3, -58.1, -59, -59.6, -59.4, -45, -40.6, -44.6, -47.4, -48.8, -45.4, -47.4, -52.8, -54.1, -55.2, -53
 			, -55.4, -57.9, -57.3, -59.2, -58.7, -39, -43.2, -44.7, -46.1, -43.4, -49.5, -50.8, -52.9, -49.5, -51.2, -51.7, -53.1, -54.2, -55.7, -58.4, -58.4, -58.8, -42.6, -36.7, -42.6, -44.1, -41.6, -42.9, -44.9, -46.5, -52.2, -54.7, -54.5, -55.7, -56, -54.5, -56.2, -58, -58.3, -41.3, -35.3, -37.3, -43.5, -41.7, -42.6, -44.8, -50.3, -48.1, -49.3, -54.2, -55.3, -56, -56.7, -56.1, -57.6, -57.5, -33.8, -39.2, -42.1, -38.1, -40.4, -42, -49, -46.1, -51.5, -53, -54.2, -52.2, -53.9, -54.9, -55.9, -57.9, -32.5, -38.5, -33, -35.3, -36.8, -38.3, -39.8, -42.9, -43.9, -50.4, -48.2, -50, -54.7, -55.1, -53.3, -54.3, -56.6, -57.6, -56.8, -31, -37, -38.7, -35.7, -43, -37.7, -40, -47.2, -49.2, -45.7, -47.4, -53.1, -50.2, -51.9, -55.3, -55, -55.7, -56.5, -57.1, -30.7, -36.5, -37, -38.8, -35.5, -37, -44.5, -39.9, -47.3, -44, -45.9, -51.2, -52.5, -54.4, -51.9, -53.1, -54.2, -55.3, -56.2, -56.7, -29.6, -33.6, -31, -32.4, -33.2, -41.1, -42.7, -38.8, -46, -43.4, -49, -50, -51.9, -53.2, -51.3, -54.8, -56.6, -56.8, -56.7, -27.6, -26.8, -33.9, -29.9, -32.5, -34.8, -42.5, -36.6, -39, -46.1, -48.5, -49.4, -50.7, -47.1, -52.2, -50.7
@@ -3184,7 +3384,7 @@ namespace fsl
 			, -18.4, -19, -11.7, -11.2, -12.8, -11.1, -11.5, -15.5, -15.4, -11.8, -10.9, -12.6, -11.6, -14.5, -14.8, -11.2, -11.3, -12.6, -11, -11.8, -11, -46.3, -21.6, -28.2, -20.5, -20.7, -49.1, -36.7, -44.7, -45.7, -26.8, -44.3, -40.4, -30.4, -35.4, -27.5, -28.1, -43.6, -43, -23.4, -24.3, -24.5, -25.6, -30.7, -21.5, -22, -22.8, -50.4, -48.2, -48.7, -49.5, -49.5, -44.3, -47.9, -43.2, -42.9, -8.4, 9.4, -45.4, -57.8, -57.3, -57.4, -57.7, -54.9, -57.2, -57.1, -54.4, -52.9, -54.4, -55.1, -56, -51.7, -52.1, -52.7, -52.4, -52.4, -49.8, -52, -53.3, -52.8, -52.7, -48.3, -49.7, -52.2, -52.1, -46.9, -49.1, -48.3, -50.5, -47.6, -45.6, -49.5, -46.3, -44.3, -42.9, -42.5, -45.7, -41.9, -42.5, -43.8, -45.3, -39.6, -38.6, -43.5, -37.1, -41.8, -34.9, -41, -34.8, -32.4, -32.5, -31, -36.6, -30.6, -34.3, -28.2, -33.5, -26.5, -25, -31.1, -29.4, -30.4, -26.6, -28.5, -23.6, -21.3, -25.7, -25.9, -19.2, -19.4, -24.9, -25.9, -18.5, -24.1, -24.1, -17.9, -24.1, -16.5, -21.9, -21.4, -12.2, -20.7, -12, -18.2, -8.8, -16.9, -16.7, -16.6, -6.5, -7.7, -13.9, -11.8, -5.1, -10.9, -3, -3.8, -0.5, -8, -7.3, -0.6, -6, 0.5, -4.7, -5.1, -4.7
 			, -3.9, 5.1, -1.4, 6.5, -1, 7, 1.4, 8.2, 1.1, 10.1, 3, 11.7, 4.4, 13.5, 6.8, 13.3, 14.3, 8.5, 9.4, 18.5, 20.3, 12.4, 13.4, 21.8, 15, 23.2, 23.6, 16.7, 26.7, 18.7, 27.2, 26.4, 21, 30.5, 31.1, 31.9, 31.8, 34.6, 26.1, 36.3, 36.8, 29.9, 30.1, 38.8, 38, 39.9, 32.4, 41.9, 34.1, 41.4, 35.6, 36.8, 38.6, 44.9, 46.8, 40.2, 41.1, 42.2, 48, 43.9, 51.7, 46.4, 54.1, 48.8, 55.6, 49.7, 56.3, 57.4, 58.3, 54.1, 59.7, 56.2, 57.5, 61.1, 61.4, 61.4, 61.3, 62.5, 61.5, 63.2, 63.2, 63.3, -57.6, -55.9, -53.9, -45.8, -43.2, -31.7, -27.4, -26.7, -25.8, -12.2, -7.7, -4, 7.2, 17.5, 31.4, 44.5, -31.6, -32.5, -33.4, -34.4, -31.3, -32.2, -33.1, -34, -34.9, -35.8, -28.4, -29.3, -30.2, -31.1, -32, -33, -33.9, -34.8, -35.7, -36.6, -37.5, -27, -28, -29, -29.9, -30.9, -31.9, -32.9, -34, -35, -36, -37, -38, -39.1, -40.1, -25.6, -26.7, -27.8, -28.9, -30, -31.1, -32.3, -33.4, -34.6, -35.7, -36.9, -38, -39.2, -24.7, -25.6, -26.5, -27.5, -28.5, -29.5, -30.5, -31.5, -32.5, -33.5, -34.5, -35.5, -36.6, -37.6, -38.6, -39.6, -40.6, -41.6, -42.6
 			, -24.2, -25.1, -26, -26.9, -27.8, -28.7, -29.6, -30.5, -31.5, -32.4, -33.4, -34.3, -35.3, -36.2, -37.2, -38.1, -39, -40, -40.9, -41.8, -42.7, -43.5, -44.4, -23.5, -24.4, -25.4, -26.4, -27.4, -28.4, -29.5, -30.5, -31.6, -32.6, -33.7, -34.7, -35.8, -36.9, -37.9, -39, -40, -41.1, -42.1, -43.1, -44.1, -45.1, -21.6, -22.5, -23.4, -24.3, -25.3, -26.2, -27.2, -28.2, -29.2, -30.3, -31.3, -32.3, -33.4, -34.4, -35.5, -36.6, -37.6, -38.7, -39.8, -40.8, -41.9, -42.9, -44, -45, -46, -21.5, -22.5, -23.5, -24.5, -25.6, -26.7, -27.8, -29, -30.1, -31.3, -32.4, -33.6, -34.8, -36, -37.2, -38.4, -39.6, -40.8, -42, -43.2, -44.4, -45.6, -46.8, -47.9 };
-		for (int i = 0; i < lLen; i++) LegLeo[i].y = (LegLeoK[i] + VoxelX / 2.0) * zTbb * zyTbb * oribb;
+		for (int i = 0; i < lLen; i++) LegLeo[i].x = (LegLeoK[i]) * zTbb * 2.0;
 		delete[]LegLeoK;
 		LegLeoK = new float[lLen] { 2.7, 4.4, -2.9, -0.3, 3.7, 11, -0.5, 3.2, 9, 4.1, 1.1, 1.8, -4.6, 3.1, 5, 12.2, 12, 7.8, -3.2, 6.7, -1.8, 6.4, 9.3, 4.3, -0.3, 4.2, -7, -0.5, 0.6, 7.5, 14.6, 6.1, -5.8, -4.3, -4.4, -4.5, -4.7, 9.2, 0.4, -0.1, 4.9, 2.9, -3, -1.1, 9, 15.8, -4.1, -8.4, -6.1, -5.8, -4.5, -5, -4.3, 6.7, -0.9, 4.3, 1.8, 3.4, -1.7, 11, 16.7, 15.9, -9.2, 12.9, -7.3, 11.2, -5.9, 8.7, -2.8, 8.5, 4.3, -1.3, 2.3, 4.1, -3.6, 12.8, 18.1, 16.8, 15.3, -10, -8.7, -7.1, 11.2, -5.3, -5.5, -4.1, -4, -0.5, -2.4, 3.9, -10.8, -6.1, 13.4, -10.8, 16.8, -10.7, 15.9, 14.6, -9.1, 12.9, 11.8, 10.2, -4.1, -3.3, 2.1, 1, -11.1, -0.2, -11.3, 18.5, -11.7, 16.2, 14.6, 14.6, -9.2, -8.6, 11.8, -6.4, -4.9, -5.8, -2.6, -2.7, 1.9, 0, -11.7, -6.8, 20.4, -12, -11.9, -11, 15.5, 14.3, -9.1, 12.1, -5.7, -5, 7.7, 2.8, 0.8, 20.8, 20.8, -7.8, -12.6, -12.6, -11.9, 17.1, 15.5, -9.4, -8, 12.3, 9.5, 7.6, 6.6, 3.6, 21.1, -8, 21, 19.8, 19.3, -12.3, -11.4, 16.4, 15, 13.3, -7.2
 			, -5.6, 8.8, -2.9, 1.6, 1.6, -12.5, 16.5, 20.7, 20.3, -13.1, 18.7, 17.6, 16.4, -10.2, -9.1, -8.1, -6.6, -6, -4.6, 7.5, 6.4, 2.4, 21.6, -8.4, 21, 20.6, -13.6, -13.3, -12.4, -11.5, 16.3, 14.3, 14.5, 12.2, 11.9, -5.4, -3, -0.4, 4.2, 22, -8.6, -13.4, 20.8, -13.9, -13.4, -12.2, 17.2, -10.3, -9.6, 14, 13.1, 11.5, 10.5, -3, -0.5, 0.3, -13.4, 21.5, 20.8, -14.3, -13.9, -13.3, 17.7, -11.2, 16, 14.9, 13.4, -6.6, -5.2, -3.9, -2.3, 2.1, -13.3, 17.2, -10.1, -14.4, -14.4, -14.3, -13.8, -12.9, -12.3, 16.6, -9.7, -8.3, 12.8, 12.6, -5.6, -4, 9.1, 2, 0.1, -13.7, 17.6, 21.2, -14.5, 20.6, -14.2, -13.5, 18.3, 17.2, -11, -10, 13.8, -7.7, -6.3, 11.3, -3.2, -1.6, 0, 5.7, -14.1, 21.4, 21.2, 21, -14.8, -14.3, 19.9, -13.3, 18.1, -11.8, -10.7, 15.4, 14, 12.4, -6, -4.9, -3.4, -1.7, -0.1, 6.7, -10.1, 17.4, -14.5, -15, -15.2, 20.5, 20.1, -13.3, 18.6, -11.8, 17.1, 16.3, 14.4, 13.2, -6.2, 11, 7.7, 5.6, 1.6, -14.3, -10.3, 21.4, -15.3, -15.2, -14.8, 20.2, -13.8, -13.1, 18.6, 17.1, 16.3, 15.4, -9.3, 13.8, -6.5
@@ -3221,7 +3421,7 @@ namespace fsl
 			, 11.9, 12.9, -2.6, -4.8, 1.9, -6.5, -9.6, 7, 6.8, -1.8, -6.7, 1.7, -10.6, 5.2, 5.9, -3.8, -3, 1.6, -7.9, -10.9, -4.9, 19.4, 16.2, 21.1, 15.4, 15.6, 18.9, 22, 19.7, 19.7, 19.9, 19.9, 20.9, 21.5, 22.2, 20.2, 20.7, 20.2, 20.5, 17.5, 18, 18.5, 19.1, 21.6, 16.1, 16.6, 17.2, 0.8, 1.4, 1.2, 5, 1.4, -0.8, -0.5, -0.8, -0.7, 19.1, 19.1, -0.9, 5.4, 2.7, 4.3, 9.3, -2.9, 11.3, 11.3, 2.6, 1.7, 4.2, 5.6, 13.2, -6.9, -2, 0.3, 1.9, 7.1, -8.2, 0.8, 9.6, 10.6, 16.9, -9.1, 1.1, 11.2, 18, -9.7, -2.2, -1.4, 12.9, -3.4, -6.1, 14.1, -9.9, -6.2, -11.3, -6.6, 15.8, -7, -0.5, 16.9, 21.4, -7.8, -8.1, 21.8, -8.3, 17, -8.4, 22.1, -8.5, -13.1, -9.3, -13.5, 22.1, -9.4, 17, -14, 17.4, -9.9, -14.4, 22.3, 18.5, 22.1, 10.9, 18.9, -10.7, -15.1, 8.2, 14.4, -15.6, -11.5, 16.4, 19.3, -15.8, 17.3, 17.2, -12.1, 17.2, -12.8, 22.7, 22.4, -17.3, 21.6, -13.3, 21.6, -18.1, 21.4, 21.3, 21.4, -18.6, -14.4, 20.7, 20.8, -15, 19.3, -15.4, -18.8, -19, 17.6, 18.2, -15.8, 18.8, -16.5, 17.5, 19.8, 18.6
 			, 19.6, -20, 16.3, -20.4, 17.9, -20.6, 17.8, -17.1, 16.7, -21.1, 16.8, -21.3, 16.8, -21.4, 17.8, -17.4, -18, 17.8, 17.8, -21.6, -21.3, 17.3, 19.6, -17, 20.2, -17.4, -20.6, 20.8, -20.1, 21.9, -16.7, -20.1, 22.8, -20.1, -16.1, -20.1, -15.3, -20.2, 25.7, -19.8, -19.3, 26.4, 26.4, -18.2, -11.2, -17.5, 26.7, -15.5, 26.4, -9.4, 25.8, 26.2, 26.6, -6.5, -5, 25.6, 24.8, 24.7, -3.9, 25.2, -9.4, 25.3, -7.8, 25.4, -6.3, 25.7, -5.2, -3.4, -2.7, 25.6, -0.8, 24, 23.6, 2.4, 6, 8.5, 3.5, 12.2, 9.4, 14.1, 16.2, 14.3, 4.4, -0.9, -4.4, -10.3, -11.2, -13.4, -14.4, 12.4, 14.9, -17.3, -18.3, -15.5, -17.2, -21.8, -16, -7.3, 21.5, 21.8, 21.9, 22.1, 21.7, 21.9, 22, 22.1, 22.1, 22.1, 20.6, 20.8, 21, 21.2, 21.3, 21.4, 21.5, 21.5, 21.5, 21.4, 21.3, 19.5, 19.8, 20.1, 20.4, 20.6, 20.8, 21, 21.1, 21.1, 21.1, 21.1, 21, 20.9, 20.8, 18.6, 19, 19.4, 19.8, 20.1, 20.4, 20.6, 20.8, 21, 21, 21.1, 21.1, 21, 17.9, 18.3, 18.8, 19.1, 19.5, 19.8, 20, 20.2, 20.4, 20.5, 20.6, 20.6, 20.6, 20.6, 20.5, 20.4, 20.2, 20, 19.8
 			, 18, 18.5, 18.9, 19.3, 19.7, 20, 20.3, 20.6, 20.8, 20.9, 21.1, 21.2, 21.2, 21.2, 21.2, 21.2, 21.1, 20.9, 20.8, 20.6, 20.3, 20, 19.7, 17.4, 18, 18.4, 18.9, 19.3, 19.7, 20, 20.2, 20.5, 20.7, 20.8, 20.9, 21, 21, 21, 20.9, 20.8, 20.7, 20.5, 20.2, 20, 19.6, 15.8, 16.4, 17, 17.5, 18, 18.4, 18.8, 19.2, 19.5, 19.8, 20.1, 20.3, 20.5, 20.6, 20.7, 20.7, 20.7, 20.7, 20.6, 20.5, 20.3, 20.1, 19.9, 19.6, 19.3, 16, 16.7, 17.3, 17.8, 18.3, 18.8, 19.2, 19.6, 19.9, 20.2, 20.4, 20.6, 20.8, 20.9, 21, 21, 20.9, 20.8, 20.7, 20.5, 20.3, 20, 19.7, 19.3 };
-		for (int i = 0; i < lLen; i++) LegLeo[i].x = (LegLeoK[i] + VoxelY / 2.0) * zTbb;
+		for (int i = 0; i < lLen; i++) LegLeo[i].y = (LegLeoK[i]) * fi * 2.0;
 		delete[]LegLeoK;
 		LegLeoK = new float[lLen] { 0.3, 0.8, 0.6, 1.1, 0.6, 1.3, 1.8, 2, 1.4, 2, 2.6, 3.6, 0.8, 0.2, 0.6, 0.9, 1.6, 2.2, 2.5, 3.1, 3.5, 3.9, 4.4, 4.5, 4.7, 4.9, 0.3, 0.4, 0.1, 1.2, 0.1, 1.2, 2.2, 3, 3.3, 4.2, 4.9, 4.7, 5.6, 5.9, 6.3, 6.6, 0.2, 0.1, 0.3, 0.2, 1.3, 3, 3.7, 3.8, 5.2, 6.5, 7, 7.2, 7.5, 7.9, 7.9, 9.2, 0.2, 1, 0.6, 2, 2.7, 4, 5.7, 6, 7, 7.4, 8.3, 8.5, 9.2, 9.7, 10.4, 10.4, 0.4, 0.6, 0.1, 1.6, 2.7, 4.4, 4.6, 5.8, 8, 7.8, 9.1, 9.2, 10.3, 10.2, 10.9, 11.3, 0.8, 0.8, 0.8, 1.7, 2, 4.4, 4.9, 5.9, 6.8, 7.9, 8.5, 10, 10.9, 11.7, 11.5, 12.5, 1.1, 0.3, 1.7, 2.7, 4.3, 4.7, 6, 7.3, 7.4, 8.6, 10, 10.3, 10.5, 11.3, 11.9, 13.2, 12.7, 13.5, 0.4, 1.2, 0.7, 2.6, 5.1, 5.2, 6.6, 8.7, 9.1, 10.7, 11.8, 12.5, 13.3, 13.5, 14.4, 0.2, 0.7, 1.1, 3.7, 4.4, 6.1, 6.7, 7.4, 9.7, 11, 11.4, 13.3, 14.4, 14.1, 15.2, 0.3, 0.7, 0.7, 3.3, 4.7, 6.4, 8, 8.6, 9.9, 11.4, 12.5
 			, 13.2, 14.5, 15.7, 15.5, 16.3, 0.6, 1.2, 2, 3.3, 5.5, 6.7, 8, 8.8, 9.8, 11.2, 12.7, 13.7, 14.6, 15.8, 15.6, 16.6, 17.1, 0, 0.4, 1.3, 2.7, 4.4, 6.8, 8.4, 9.7, 10.7, 12, 12.4, 13.5, 14.6, 16.1, 17.2, 17.4, 17.9, 0, 0.4, 1.7, 3.3, 5.7, 7.8, 9.5, 10, 12.2, 13.2, 14.1, 14.1, 16, 16.8, 17.4, 18.1, 19.1, 1, 0.7, 3.3, 5.1, 7.1, 8.4, 10, 11.8, 12.6, 14.1, 15.4, 16.6, 17.9, 18.6, 19.2, 19.5, 1, 0.6, 1.1, 3.7, 5, 6.5, 7.7, 10.4, 11.2, 12.7, 14.3, 15.6, 16.2, 17.2, 18.6, 19.3, 19.4, 20.2, 21, 1, 0.9, 2.7, 4.7, 5.4, 7.1, 9.1, 10.7, 12.7, 13.8, 15.2, 16.7, 17.4, 18.7, 19.2, 20.1, 21.1, 21.9, 21.6, 1.3, 0.7, 2.4, 4, 6.3, 7.7, 8.1, 10.2, 12.1, 13.7, 15.2, 16, 17.4, 19.4, 19.9, 20.8, 21.6, 22.3, 22.9, 22.3, 0.4, 0, 2.4, 3.7, 5.7, 7.4, 8.5, 10.4, 12.1, 14.3, 14.4, 16.1, 18.1, 19.4, 20.6, 21.2, 22.1, 22.8, 23.6, 0.2, 0.4, 2, 3.9, 6.2, 7.1, 8.7, 9.8, 11.8, 13.4, 14.5, 16.7, 16.8, 18.5, 19.2, 21.2
@@ -3258,18 +3458,29 @@ namespace fsl
 			, 132.3, 133.3, 129.7, 130.8, 130.4, 131, 131.8, 131.7, 132.9, 130.9, 132.1, 132.1, 132.1, 132.3, 133.6, 131.9, 132.6, 132.4, 133.4, 133.5, 133.1, 127, 127.7, 105.3, 131.7, 130.5, 131.5, 105.6, 123.9, 125, 111, 122.5, 114.4, 104, 103.9, 109.5, 107, 120.6, 118.8, 121.6, 119.4, 117.1, 114.2, 104.1, 128.2, 126.1, 123.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 			, 0, 0, 0.4, 0, 0, 0, 0, 0, 0.6, 0, 0, 0, 0, 0, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 102.1, 102.4, 103.2, 101.5, 105.8, 105.8, 105.9, 104.5, 104.6, 106.3, 109.9, 108.8, 108.1, 108.2, 108.3, 108.4, 109, 108, 108.2, 108.5, 107.8, 111.6, 112.8, 111.9, 112.2, 113.3, 112.7, 111.5, 112.2, 111.2, 112.8, 113.3, 112.6, 112.7, 111.4, 115.5, 115.7, 114.9, 116.6, 116.5, 115.6, 115.8, 116.2, 115.4, 116.7, 115.4, 116.3, 114.5, 119.9, 119.4, 117.9, 119.7, 118.1, 119.1, 118.5, 118.8, 119.5, 118.2, 118.2, 118.2, 119.6, 118.4, 119.1, 119.2, 118.7, 119.6, 120.2
 			, 122.2, 123.1, 123.6, 121.4, 123.4, 121.9, 121.3, 121.3, 123.2, 123.4, 121.8, 123.2, 122.6, 121.9, 123.4, 122.4, 123.4, 122.4, 121.3, 123.6, 121.5, 121.2, 122.9, 124.7, 126.4, 126.1, 125.2, 126.8, 126.6, 124.7, 124.7, 126.7, 125.3, 125.1, 126, 126.8, 126.2, 125.5, 126.7, 124.8, 124.6, 124.6, 125.5, 126.9, 126.7, 128.6, 128.2, 130, 129.8, 128.4, 130.2, 129, 129.4, 129.3, 128.6, 129.6, 129.1, 128.9, 129.3, 129.4, 129.4, 129.7, 129, 128.5, 129.4, 129.3, 128.7, 128.9, 128.9, 129.5, 132.4, 133, 132, 132.1, 132.7, 132.8, 131.8, 132.9, 131.5, 132.2, 133.6, 133.6, 131.5, 132.6, 132.9, 132.4, 132.6, 133.5, 133.6, 132.8, 133, 131.9, 131.3, 133 };
-		for (int i = 0; i < lLen; i++) LegLeo[i].z = (LegLeoK[i]) * zTbb;
+		for (int i = 0; i < lLen; i++) LegLeo[i].z = (LegLeoK[i]) * zTbb * 2.0;
 		delete[]LegLeoK;
-		double co = cos(fTbb);
-		double si = sqrt(1 - co * co);
-		for (int i = 0; i < lLen; i++)
+		float co = t_cos(fTbb);
+		float si = sqrt(1 - co * co);
+
+		float LmaxX = LegLeo[0].x, LminX = LegLeo[0].x, LmaxY = LegLeo[0].y, LminY = LegLeo[0].y, LmaxZ = LegLeo[0].z, LminZ = LegLeo[0].z;
+
+		for (int i = 1; i < lLen; i++)
 		{
-			LegLeo[i].x = xTbb + LegLeo[i].x * co - LegLeo[i].y * si;
-			LegLeo[i].y = yTbb + LegLeo[i].x * si + LegLeo[i].y * co;
+			if (LegLeo[i].x > LmaxX) LmaxX = LegLeo[i].x;
+			if (LegLeo[i].x < LminX) LminX = LegLeo[i].x;
+			if (LegLeo[i].y > LmaxY) LmaxY = LegLeo[i].y;
+			if (LegLeo[i].y < LminY) LminY = LegLeo[i].y;
+			if (LegLeo[i].z > LmaxZ) LmaxZ = LegLeo[i].z;
+			if (LegLeo[i].z < LminZ) LminZ = LegLeo[i].z;
 		}
 
-		double LmaxX = LegLeo[0].x, LminX = LegLeo[0].x, LmaxY = LegLeo[0].y, LminY = LegLeo[0].y;
-
+		for (int i = 0; i < lLen; i++)
+		{
+			LegLeo[i].x -= (LmaxX + LminX) / 2.0;
+			LegLeo[i].y -= (LmaxY + LminY) / 2.0;
+		}
+		LmaxX = LegLeo[0].x; LminX = LegLeo[0].x; LmaxY = LegLeo[0].y; LminY = LegLeo[0].y;
 		for (int i = 1; i < lLen; i++)
 		{
 			if (LegLeo[i].x > LmaxX) LmaxX = LegLeo[i].x;
@@ -3278,19 +3489,59 @@ namespace fsl
 			if (LegLeo[i].y < LminY) LminY = LegLeo[i].y;
 		}
 
-#ifdef BestTopDebug
-		for (int z = 0; z < VoxelZ; z++)
+		for (int i = 0; i < lLen; i++)
 		{
-			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) Base2.at<uch>(x, y) = (voxel.Get(x, y, z) > 0) ? 255 : 0;
+			LegLeo[i].x = xTbb + LegLeo[i].x * co - LegLeo[i].y * si + VoxelX / 2.0;
+			LegLeo[i].y = yTbb + LegLeo[i].x * si + LegLeo[i].y * co + VoxelY / 2.0;
+		}
+
+		for (int i = 1; i < lLen; i++)
+		{
+			if (LegLeo[i].x > LmaxX) LmaxX = LegLeo[i].x;
+			if (LegLeo[i].x < LminX) LminX = LegLeo[i].x;
+			if (LegLeo[i].y > LmaxY) LmaxY = LegLeo[i].y;
+			if (LegLeo[i].y < LminY) LminY = LegLeo[i].y;
+			if (LegLeo[i].z > LmaxZ) LmaxZ = LegLeo[i].z;
+			if (LegLeo[i].z < LminZ) LminZ = LegLeo[i].z;
+		}
+#ifdef BestTopDebug
+		for (int z = -10; z < VoxelZ + 10; z++)
+		{
+			float dx = 0 , dy = 0;
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
+			{
+				dx = GetVoxel(x, y, z);
+				Base2.at<uch>(x, y) = (dx > 0) ? 100 : 0;
+			}
+			for (int i = 0; i < lLen; i++) if (abs(LegLeo[i].z - z * VoxelS) < 5)
+			{
+				dx = LegLeo[i].x; if (dx < 0) dx = 0; if (dx > VoxelX - 1)dx = VoxelX - 1;
+				dy = LegLeo[i].y; if (dy < 0) dy = 0; if (dy > VoxelY - 1)dy = VoxelY - 1;
+				Base2.at<uch>(dx, dy) = 255;
+			}
 			cv::imshow("BestTopDebugLayer", Base2);
-			cv::waitKey();
+			cv::waitKey(1);
+		}
+		Base2 = cv::Mat(VoxelX, VoxelZ, CV_8U);
+		for (int y = -10; y < VoxelY + 10; y++)
+		{
+			float dx = 0, dy = 0;
+			for (int x = 0; x < VoxelX; x++)for (int z = 0; z < VoxelZ; z++) Base2.at<uch>(x, z) = (GetVoxel(x, y, z) > 0) ? 100 : 0;
+			for (int i = 0; i < lLen; i++) if (abs(LegLeo[i].y - y * VoxelS) < 5)
+			{
+				dx = LegLeo[i].x; if (dx < 0) dx = 0; if (dx > VoxelX - 1)dx = VoxelX - 1;
+				dy = LegLeo[i].z; if (dy < 0) dy = 0; if (dy > VoxelZ - 1)dy = VoxelZ - 1;
+				Base2.at<uch>(dx, dy) = 255;
+			}
+			cv::imshow("BestTopDebugLayer", Base2);
+			cv::waitKey(1);
 		}
 #endif // BestTopDebug
 
 		for (int z = 0; z < VoxelZ; z++) if(z > 40 * VoxelS)
 		{
 			Vector3 Cen;
-			double k = LminX + 0.6 * (LmaxX - LminY);
+			float k = LminX + 0.6 * (LmaxX - LminX);
 			int l = 0;
 			for (int i = 0; i < lLen; i++) if (LegLeo[i].x < k && abs(LegLeo[i].z - z * VoxelS) < 5)
 			{
@@ -3298,22 +3549,24 @@ namespace fsl
 				l++;
 			}
 			Cen = Cen / l;
+			if (l == 0) continue;
+
 
 			for (int x = -13; x <= 13; x++)for (int y = -13; y <= 13; y++)
 				if (x*x + y * y < 13 * 13)
-					voxel.Get(Cen.x + x, Cen.y + y, z) = 1;
+					GetVoxel((int)Cen.x + x, (int)Cen.y + y, z) = 1;
 
 			l = 360 / 6;
 			int big = 360 * 4;
 
-			double *voxelr = new double[big], *leor = new double[big];
+			float *voxelr = new float[big], *leor = new float[big];
 
 			int del = big / l;
 
 			for (int a = 0; a < l; a++)
 			{
-				double alpha = a * 2 * PI / (l);
-				double co = cos(alpha), si = sqrt(1 - co * co), maxr = 0, tr;
+				float alpha = a * 2 * PI / (l);
+				float co = t_cos(alpha), si = t_sin(alpha), maxr = 0, tr;
 				int oldx = Cen.x, oldy = Cen.y, x, y;
 				for (int r = 1; r < 200; r++)
 				{
@@ -3323,7 +3576,7 @@ namespace fsl
 					else
 					{
 						if (x < 0 || x >= VoxelX || y < 0 || y >= VoxelY) break;
-						if (voxel.USGet(x, y, z) == 0) break;
+						if (USGetVoxel(x, y, z) == 0) break;
 						tr = r;
 						if (tr > maxr) maxr = tr;
 					}
@@ -3331,17 +3584,19 @@ namespace fsl
 				}
 				voxelr[a * del] = maxr;
 
-				double bestr2 = 15;
-				double KritB = 1e20;
-				for (int i = 0; i < lLen; i++) if (LegLeo[i].x < k && abs(LegLeo[i].z - z * VoxelS) < 5)
+				float bestr2 = 15;
+				float KritB = 1e20;
+				for (int i = 0; i < lLen; i++) if (abs(LegLeo[i].z - z * VoxelS) < 5)
 				{
-					double r = (LegLeo[i].y - Cen.y) / (LegLeo[i].x - Cen.x);
-					double beta = (abs(r) > 1000) ? r / abs(r) * PI / 2.0 : atan(r);
+					Vector2 U(LegLeo[i].x - Cen.x, LegLeo[i].y - Cen.y); U.SetLenght(1);
+					float alpha2 = (U.y > 0) ? acos(-U.x) : 2 * PI - acos(-U.x);
+					float r = (LegLeo[i].y - Cen.y) / (LegLeo[i].x - Cen.x);
+					float beta = (abs(r) > 1000) ? r / abs(r) * PI / 2.0 : atan(r);
 					if (LegLeo[i].x - Cen.x < 0) beta += PI;
-					if (abs(beta - alpha) < 1 / 18.0 * PI)
+					if (abs(alpha2 - alpha) < 1 / 18.0 * PI)
 					{
 						r = sqrt((LegLeo[i].x - Cen.x) * (LegLeo[i].x - Cen.x) + (LegLeo[i].y - Cen.y) * (LegLeo[i].y - Cen.y));
-						double gamma = (r > 0) ? atan((LegLeo[i].z - z) / r) : 0;
+						float gamma = (r > 0) ? atan((LegLeo[i].z - z) / r) : 0;
 						if ((LegLeo[i].x - Cen.x) < 0) gamma += PI;
 						gamma = gamma * gamma + 4 * r * r;
 						if (gamma < KritB)
@@ -3352,26 +3607,26 @@ namespace fsl
 					}
 				}
 
-				leor[a * del] = bestr2;
-
-				if (a != 0)
-				{
-					for (int h = 1; h < del; h++)
-					{
-						voxelr[(a - 1) * del + h] = voxelr[(a - 1) * del] + h / (double)del * (voxelr[(a)* del] - voxelr[(a - 1) * del]);
-						leor[(a - 1) * del + h] = leor[(a - 1) * del] + h / (double)del * (leor[(a)* del] - leor[(a - 1) * del]);
-					}
-				}
-				if (a == l - 1)
-				{
-					for (int h = 1; h < del; h++)
-					{
-						voxelr[(a)* del + h] = voxelr[(a)* del] + h / (double)del * (voxelr[0] - voxelr[(a)* del]);
-						leor[(a)* del + h] = leor[(a)* del] + h / (double)del * (leor[0] - leor[(a)* del]);
-					}
-				}
+				leor[a * del] = bestr2;				
 			}
-			double r1 = 0, r2 = 0, r3 = 0, maxr = 0;
+			l = 360 / 6;
+			for3(l)
+			{
+				int a = i1;
+
+				if (abs((voxelr[(i0)* del] + voxelr[(i2)* del]) / 2.0 - voxelr[(i1)* del]) > voxelr[(i1)* del] / 3.0)
+				{
+					voxelr[(i1)* del] = (voxelr[(i0)* del] + voxelr[(i2)* del]) / 2.0;
+				}
+
+				for (int h = 1; h < del; h++)
+				{
+					voxelr[(i0) * del + h] = voxelr[(i0) * del] + h / (float)del * (voxelr[(i1)* del] - voxelr[(i0) * del]);
+					leor[(i0) * del + h] = leor[(i0) * del] + h / (float)del * (leor[(i1)* del] - leor[(i0) * del]);
+				}
+
+			}
+			float r1 = 0, r2 = 0, r3 = 0, maxr = 0;
 			for (int i = 0; i < big; i++)
 			{
 				r1 += voxelr[i];
@@ -3381,41 +3636,61 @@ namespace fsl
 				if (maxr < leor[i])maxr = leor[i];
 
 			}
-
-			double KO = 1 - exp(-0.4*sqrt(abs(r3 / ((r1 + r2) / 2.0 + 1e-20))));
+			float KO = 1 - exp(-0.4*sqrt(abs(r3 / ((r1 + r2) / 2.0 + 1e-20))));
 			// Закладываем закономерность в радиус
-			double KF = (1 - 1 / (1 + exp((k - 70) / 12.0))) / 0.92414;
+			float KF = (1 - 1 / (1 + exp((z - 70) / 12.0))) / 0.92414;
 			KF = KF + (1 - KF)*KO;
-			double dx = Cen.x, dy = Cen.y;
-			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) voxel.Get(x, y, z) = 0;
+			float dx = Cen.x, dy = Cen.y;
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) GetVoxel(x, y, z) = 0;
 #ifdef BestTopDebug
 			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) Base2.at<uch>(x, y) = 0;
+
 #endif // BestTopDebug
-			for (int x = Cen.x - maxr; x < Cen.x + maxr + 1; x++, dx = Cen.x - x) for (int y = Cen.y - maxr; y < Cen.y + maxr + 1; y++, dy = (Cen.y - y)) if (dx * dx + dy * dy < maxr * maxr + 1)
+			for (int x = Cen.x - maxr; x < Cen.x + maxr + 1; x++, dx = Cen.x - x) for (int y = Cen.y - maxr; y < Cen.y + maxr + 1; y++, dy = (Cen.y - y)) if (dx * dx + dy * dy < maxr * maxr + 8)
 			{
-				double tg = (dx > 0) ? dy / dx : ((dy > 0) ? 1e20 : -1e20);
-				double alpha = atan(tg);
+				Vector2 U(-dx, -dy); U.SetLenght(1);
+				float tg = (dx > 0) ? dy / dx : ((dy > 0) ? 1e20 : -1e20);
+				float alpha = atan(tg);
 				if (dx > 0) alpha += PI;
-				int betak = alpha * big / (2 * PI);
+				float alpha2 = (U.y > 0) ? acos(-U.x) : 2 * PI - acos(-U.x);
+				int betak = alpha2 * big / (2 * PI);
 				while (betak >= big) betak -= big;
 				while (betak < 0) betak += big;
-				double r = voxelr[betak] + (leor[betak] - voxelr[betak]) * KF;
+				float r = voxelr[betak] + (leor[betak] - voxelr[betak]) * KF;
 				r = r * r;
 				if (r > dx * dx + dy * dy)
 				{
-					voxel.Get(x, y, z) = 1;
+					GetVoxel(x, y, z) = 1;
 
 				}
 			}
 #ifdef BestTopDebug
-			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) Base2.at<uch>(x, y) = (voxel.Get(x, y, z) > 0) ? 255 : 0;
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) Base2.at<uch>(x, y) = (GetVoxel(x, y, z) > 0) ? 255 : 0;
+
+			for (int betak = 0; betak < big; betak++)
+			{
+				float a = betak / (double)big * (2 * PI), tx, ty;
+				float r = voxelr[betak] + (leor[betak] - voxelr[betak]) * KF;
+
+				tx = t_cos(a) * voxelr[betak] + Cen.x; ty = t_sin(a) * voxelr[betak] + Cen.y;
+				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
+				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
+				Base2.at<uch>(tx, ty) = 200;
+				tx = t_cos(a) * leor[betak] + Cen.x; ty = t_sin(a) * leor[betak] + Cen.y;
+				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
+				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
+				Base2.at<uch>(tx, ty) = 150;
+				tx = t_cos(a) * r + Cen.x; ty = t_sin(a) * r + Cen.y;
+				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
+				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
+				Base2.at<uch>(tx, ty) = 100;
+			}
+
+			cv::imshow("BestTopDebugLayer", Base2);
+			cv::waitKey(1);
 #endif // BestTopDebug
 			delete[]voxelr;
 			delete[]leor;
-#ifdef BestTopDebug
-			cv::imshow("BestTopDebugLayer", Base2);
-			cv::waitKey();
-#endif // BestTopDebug
 		}
 
 		if (oribb = -1) Orientation = 1;
@@ -3423,16 +3698,18 @@ namespace fsl
 #ifdef BestTopDebug
 		Vector3 base;
 		d1 = Base.clone();
-		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
+		int counter = 0;
+		for (int z = 0; z < VoxelZ; z++)for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
 		{
-			if (voxel.USGet(x, y, z) == 1)
+			if (GetVoxel(x, y, z) > 0)
 			{
 				for (int u = 0; u < 4; u++)
 				{
-					base.x = (x - VoxelX / 2.0) * VoxelS; P.y = (y - VoxelY / 2.0) * VoxelS; P.z = -(z)* VoxelS;
+					counter++;
+					base.x = (x - VoxelX / 2.0) * VoxelS; base.y = (y - VoxelY / 2.0) * VoxelS; base.z = -(z)* VoxelS;
 					int by = 100 * u;
 					base.x += Cams[u][0].x; base.y += Cams[u][0].y; base.z += Cams[u][0].z;
-					double r = focus / KS / (base * Cams[u][3]);
+					float r = focus / KS / (base * Cams[u][3]);
 					base = Vector3(base * Cams[u][1] * r + 200 / 2.0, base * Cams[u][2] * r + 100 / 2.0, focus / KS);
 					if (base.x >= 0 && base.x <= 199 && base.y >= 0 && base.y <= 99)
 						d1.at<uch>((int)base.x, (int)base.y + by) = 255;
@@ -3442,6 +3719,50 @@ namespace fsl
 		cv::imshow("BestTopDebug", d1);
 		cv::waitKey();
 #endif // BestTopDebug
+
+#ifdef BestTopDebug
+		for (int z = -10; z < VoxelZ + 10; z++)
+		{
+			float dx = 0, dy = 0;
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
+			{
+				dx = GetVoxel(x, y, z);
+				if (dx > 0)
+				{
+					dx = 1;
+				}
+				Base2.at<uch>(x, y) = (dx > 0) ? 100 : 0;
+			}
+			for (int i = 0; i < lLen; i++) if (abs(LegLeo[i].z - z * VoxelS) < 5)
+			{
+				dx = LegLeo[i].x; if (dx < 0) dx = 0; if (dx > VoxelX - 1)dx = VoxelX - 1;
+				dy = LegLeo[i].y; if (dy < 0) dy = 0; if (dy > VoxelY - 1)dy = VoxelY - 1;
+				Base2.at<uch>(dx, dy) = 255;
+			}
+			cv::imshow("BestTopDebugLayer", Base2);
+			cv::waitKey(1);
+			if (z == VoxelZ / 2)cv::waitKey();
+		}
+		Base2 = cv::Mat(VoxelX, VoxelZ, CV_8U);
+		for (int y = -10; y < VoxelY + 10; y++)
+		{
+			float dx = 0, dy = 0;
+			for (int x = 0; x < VoxelX; x++)for (int z = 0; z < VoxelZ; z++) Base2.at<uch>(x, z) = (GetVoxel(x, y, z) > 0) ? 100 : 0;
+			for (int i = 0; i < lLen; i++) if (abs(LegLeo[i].y - y * VoxelS) < 5)
+			{
+				dx = LegLeo[i].x; if (dx < 0) dx = 0; if (dx > VoxelX - 1)dx = VoxelX - 1;
+				dy = LegLeo[i].z; if (dy < 0) dy = 0; if (dy > VoxelZ - 1)dy = VoxelZ - 1;
+				Base2.at<uch>(dx, dy) = 255;
+			}
+			cv::imshow("BestTopDebugLayer", Base2);
+			cv::waitKey(1);
+			if (y == VoxelY / 2)cv::waitKey();
+		}
+#endif // BestTopDebug
+
+#ifdef DebugConsole
+		std::cout << "UpgradeEnd" << std::endl;
+#endif // DEBUG
 	}
 
 	void Centrovka()
@@ -3452,7 +3773,7 @@ namespace fsl
 	void MakeKakScaner()
 	{
 		// Код посметьева
-		double *AF = new double[72];
+		float *AF = new float[72];
 		AF[0] = 0.000; AF[1] = 1.500; AF[2] = 1.495; AF[3] = 1.506; AF[4] = 1.525; AF[5] = 1.554; AF[6] = 1.599; AF[7] = 1.665; AF[8] = 1.753; AF[9] = 1.871;
 		AF[10] = 2.020; AF[11] = 2.200; AF[12] = 2.435; AF[13] = 2.695; AF[14] = 2.976; AF[15] = 3.270; AF[16] = 3.565; AF[17] = 3.853; AF[18] = 4.125; AF[19] = 4.370;
 		AF[20] = 4.579; AF[21] = 4.750; AF[22] = 4.849; AF[23] = 4.906; AF[24] = 4.920; AF[25] = 4.895; AF[26] = 4.840; AF[27] = 4.758; AF[28] = 4.656; AF[29] = 4.539;
@@ -3464,22 +3785,22 @@ namespace fsl
 		int begin = -1, end = -1;
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
 		{
-			if (begin == -1 && voxel.USGet(x, y, z) == 1) begin = x;
-			if (end == -1 && voxel.USGet(VoxelX - 1 - x, y, z) == 1) end = x;
+			if (begin == -1 && USGetVoxel(x, y, z) == 1) begin = x;
+			if (end == -1 && USGetVoxel(VoxelX - 1 - x, y, z) == 1) end = x;
 			if (begin == -1 && end == -1) { x = VoxelX; y = VoxelY; z = VoxelZ; }
 		}
-		double r = 0;
+		float r = 0;
 		uch buff = 0, maskin = 0b00000010, maskout = 0b00000001;
 		for (int x = begin; x <= end; x++)
 		{
-			r = (x - begin) / (double)(begin - end) * 100;
+			r = (x - begin) / (float)(begin - end) * 100;
 			if (r > 71) break;
 			r = AF[(int)r] * VoxelS;
 			for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
 			{
-				buff = voxel.Get(x, y, z + (int)r);
+				buff = GetVoxel(x, y, z + (int)r);
 				if ((buff & maskout) > 0)
-					voxel.Get(x, y, z) = voxel.Get(x, y, z) | maskin;
+					GetVoxel(x, y, z) = GetVoxel(x, y, z) | maskin;
 			}
 		}
 		for (int x = begin; x <= end; x++)
@@ -3488,8 +3809,8 @@ namespace fsl
 			{
 				for (int z = 0; z < VoxelZ; z++)
 				{
-					buff = voxel.Get(x, y, z);
-					if ((buff & maskin) > 0 || (z < 3 && voxel.Get(x, y, 0) & maskout > 0))
+					buff = GetVoxel(x, y, z);
+					if ((buff & maskin) > 0 || ((z < 3 && GetVoxel(x, y, 0) & maskout) > 0))
 						buff = maskout;
 				}
 			}
@@ -3501,8 +3822,8 @@ namespace fsl
 		int minl = -1, maxl = -1;
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < 50; z++)
 		{
-			if (voxel.USGet(x, y, z) > 0 && minl == -1) minl = x;
-			if (voxel.USGet(VoxelX - 1 - x, y, z) > 0 && maxl == -1) maxl = x;
+			if (USGetVoxel(x, y, z) > 0 && minl == -1) minl = x;
+			if (USGetVoxel(VoxelX - 1 - x, y, z) > 0 && maxl == -1) maxl = x;
 			if (maxl != -1 && minl != -1)
 			{
 				x = VoxelX; y = VoxelY; z = VoxelZ;
@@ -3516,21 +3837,21 @@ namespace fsl
 		for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
 		{
 			int x = VoxelX - 1;
-			for (; x >= 0; x--)if (voxel.USGet(x, y, z) > 0) x = -x; else if (x == 0) x = -VoxelX;
+			for (; x >= 0; x--)if (USGetVoxel(x, y, z) > 0) x = -x; else if (x == 0) x = -VoxelX;
 			x = -x;
 			if (x >= 0 && x < VoxelX)
 			{
 				if (d == -2)
 				{
-					voxel.Get(x, y, z) = 0; voxel.Get(x - 1, y, z) = 0;
+					GetVoxel(x, y, z) = 0; GetVoxel(x - 1, y, z) = 0;
 				}
 				if (d == -1)
 				{
-					voxel.Get(x, y, z) = 0;
+					GetVoxel(x, y, z) = 0;
 				}
 				if (d == 1)
 				{
-					voxel.Get(x + 1, y, z) = 1;
+					GetVoxel(x + 1, y, z) = 1;
 				}
 			}
 		}
@@ -3540,8 +3861,8 @@ namespace fsl
 			int tminw = -1, tmaxw = -1;
 			for (int y = 0; y < VoxelY; y++)
 			{
-				if (voxel.USGet(x, y, z) > 0 && tminw == -1) tminw = x;
-				if (voxel.USGet(x, VoxelY - 1 - y, z) > 0 && tmaxw == -1) tmaxw = x;
+				if (USGetVoxel(x, y, z) > 0 && tminw == -1) tminw = x;
+				if (USGetVoxel(x, VoxelY - 1 - y, z) > 0 && tmaxw == -1) tmaxw = x;
 				if (tmaxw != -1 && tminw != -1)
 				{
 					y = VoxelY;
@@ -3559,42 +3880,42 @@ namespace fsl
 		for (int x = 0; x < VoxelX; x++)for (int z = 0; z < VoxelZ; z++)
 		{
 			int y = VoxelY - 1;
-			for (; y >= 0; y--)if (voxel.USGet(x, y, z) > 0) y = -y; else if (y == 0) y = -VoxelY;
+			for (; y >= 0; y--)if (USGetVoxel(x, y, z) > 0) y = -y; else if (y == 0) y = -VoxelY;
 			y = -y;
 			if (y >= 0 && y < VoxelY)
 			{
 				if (d == -1)
 				{
-					voxel.Get(x, y, z) = 0;
+					GetVoxel(x, y, z) = 0;
 				}
 				if (d == 1)
 				{
-					voxel.Get(x, y + 1, z) = 1;
+					GetVoxel(x, y + 1, z) = 1;
 				}
 			}
 		}
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
 		{
 			int z = VoxelZ - 1;
-			for (; z >= 0; z--)if (voxel.USGet(x, y, z) > 0) z = -z; else if (z == 0) z = -VoxelZ;
+			for (; z >= 0; z--)if (USGetVoxel(x, y, z) > 0) z = -z; else if (z == 0) z = -VoxelZ;
 			z = -z;
 			if (z >= 0 && z < VoxelZ)
 			{
 				if (d == -1)
 				{
-					voxel.Get(x, y, z) = 0;
+					GetVoxel(x, y, z) = 0;
 				}
 				if (d == 1)
 				{
-					voxel.Get(x, y, z + 1) = 1;
+					GetVoxel(x, y, z + 1) = 1;
 				}
 			}
 		}
 		maxl = -1; minl = -1;
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < 50; z++)
 		{
-			if (voxel.USGet(x, y, z) > 0 && minl == -1) minl = x;
-			if (voxel.USGet(VoxelX - 1 - x, y, z) > 0 && maxl == -1) maxl = x;
+			if (USGetVoxel(x, y, z) > 0 && minl == -1) minl = x;
+			if (USGetVoxel(VoxelX - 1 - x, y, z) > 0 && maxl == -1) maxl = x;
 			if (maxl != -1 && minl != -1)
 			{
 				x = VoxelX; y = VoxelY; z = VoxelZ;
@@ -3602,21 +3923,21 @@ namespace fsl
 		}
 		// Корректирую на загиб листа:   L=L+(-0.379+0.249*S);   B=B+(1.672+0.0592*S);
 		// Корректирую длину
-		double r = devia[7] + devia[4] + devia[7] / 2 + devia[4] / 2;
+		float r = devia[7] + devia[4] + devia[7] / 2 + devia[4] / 2;
 		r = -0.379 + 0.249*r;
 		r = (maxl - minl + r) / (maxl - minl + 1e-20);
 		// Коррекция второго порядка
-		double rr = devia[7] + devia[4];
+		float rr = devia[7] + devia[4];
 		rr = -(2.57 - 0.2864*rr);
 		// Коррекция третьего порядка
-		double r5 = devia[7] + devia[4];
+		float r5 = devia[7] + devia[4];
 		rr = rr + (2.669 - 0.3153*r5);
 		rr = (maxl - minl + rr) / (maxl - minl + 1e-20);
-		uch *buff = new uch[max(VoxelX, VoxelY)];
+		uch *buff = new uch[max_f(VoxelX, VoxelY)];
 		for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
 		{
-			for (int x = 0; x < VoxelX; x++) buff[x] = voxel.USGet(x, y, z);
-			for (int x = 0; x < VoxelX; x++) voxel.USGet(x, y, z) = buff[(int)(VoxelX / 2 + (x - VoxelX / 2) / (r*rr + 1e-20))];
+			for (int x = 0; x < VoxelX; x++) buff[x] = USGetVoxel(x, y, z);
+			for (int x = 0; x < VoxelX; x++) USGetVoxel(x, y, z) = buff[(int)(VoxelX / 2 + (x - VoxelX / 2) / (r*rr + 1e-20))];
 		}
 		// Корректирую на загиб листа:   L=L+(-0.379+0.249*S);   B=B+(1.672+0.0592*S);
 		// Корректирую ширину
@@ -3632,13 +3953,13 @@ namespace fsl
 		rr = (width + rr) / (width + 1e-20);
 		for (int x = 0; x < VoxelX; x++)for (int z = 0; z < VoxelZ; z++)
 		{
-			for (int y = 0; y < VoxelY; y++) buff[y] = voxel.USGet(x, y, z);
-			for (int y = 0; y < VoxelY; y++) voxel.USGet(x, y, z) = buff[(int)(VoxelY / 2 + (y - VoxelY / 2) / (r*rr + 1e-20))];
+			for (int y = 0; y < VoxelY; y++) buff[y] = USGetVoxel(x, y, z);
+			for (int y = 0; y < VoxelY; y++) USGetVoxel(x, y, z) = buff[(int)(VoxelY / 2 + (y - VoxelY / 2) / (r*rr + 1e-20))];
 		}
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < 50; z++)
 		{
-			if (voxel.USGet(x, y, z) > 0 && minl == -1) minl = x;
-			if (voxel.USGet(VoxelX - 1 - x, y, z) > 0 && maxl == -1) maxl = x;
+			if (USGetVoxel(x, y, z) > 0 && minl == -1) minl = x;
+			if (USGetVoxel(VoxelX - 1 - x, y, z) > 0 && maxl == -1) maxl = x;
 			if (maxl != -1 && minl != -1)
 			{
 				x = VoxelX; y = VoxelY; z = VoxelZ;
@@ -3647,8 +3968,8 @@ namespace fsl
 		maxl = -1; minl = -1;
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < 50; z++)
 		{
-			if (voxel.USGet(x, y, z) > 0 && minl == -1) minl = x;
-			if (voxel.USGet(VoxelX - 1 - x, y, z) > 0 && maxl == -1) maxl = x;
+			if (USGetVoxel(x, y, z) > 0 && minl == -1) minl = x;
+			if (USGetVoxel(VoxelX - 1 - x, y, z) > 0 && maxl == -1) maxl = x;
 			if (maxl != -1 && minl != -1)
 			{
 				x = VoxelX; y = VoxelY; z = VoxelZ;
@@ -3660,8 +3981,8 @@ namespace fsl
 			int tminw = -1, tmaxw = -1;
 			for (int y = 0; y < VoxelY; y++)
 			{
-				if (voxel.USGet(x, y, z) > 0 && tminw == -1) tminw = x;
-				if (voxel.USGet(x, VoxelY - 1 - y, z) > 0 && tmaxw == -1) tmaxw = x;
+				if (USGetVoxel(x, y, z) > 0 && tminw == -1) tminw = x;
+				if (USGetVoxel(x, VoxelY - 1 - y, z) > 0 && tmaxw == -1) tmaxw = x;
 				if (tmaxw != -1 && tminw != -1)
 				{
 					y = VoxelY;
@@ -3693,16 +4014,20 @@ namespace fsl
 
 	void Prepare()
 	{
+		for (int32_t x = 0; x < UINT16_MAX; x++)
+		{
+			sint[x] = sinf((double)x / (double)SIN_UP);
+		}
 		K = 43.26661530556787151743 / sqrt(immaxX * immaxX + immaxY * immaxY);
 		ismale = true;
 
 		voxel = Voxel(VoxelX, VoxelY, VoxelZ);
 
 		sphNoga = new Vector3[80];
-		double *tx = new double[80]{ -31.586, -54.338, -79.422, -87.392, 20.206, -4.095, -82.568, -81.81, -78.205, -71.239, 12.979, -69.774, 63.242, 52.594, -40.76, -23.899, -101.968, -100.973, 97.261, -53.009, -57.968, -53.987, -50.643, 80.556, 28.291, -37.864, 68.973, 87.525, 50.309, -28.211, -6.579, -93.309, 75.315, -48.179, -68.199, -44.203, 0.674, -25.696, 11.526, -21.359, -38.259, 35.423, 112.634, 40.347, 44.522, -51.104, -49.152, 42.484, 66.355, -34.237, 91.088, 21.634, -54.127, -94.514, -24.88, 108.639, -59.463, -57.292, -11.901, 63.788, 97.003, -33.328, 46.895, 77.757, 39.134, -111.784, -62.769, 54.227, -19.469, -18.397, 3.246, -59.022, 34.878, -63.495, -40.069, -9.402, 81.451, 9.036, -108.271, -5.61 };
-		double *ty = new double[80]{ 14.572, 13.641, 3.318, 8.299, 15.781, 7.412, 6.973, 24.587, -10.463, -12.12, 30.125, 11.12, 0.689, 23.322, 33.213, 33.602, 22.22, -5.586, 36.211, 17.51, 2.916, -11.824, -1.476, 37.306, -29.022, -14.361, 23.658, 6.199, -1.547, -4.175, 34.579, 9.631, 19.951, 36.1, 33.673, 0.508, -17.353, 35.608, -27.238, 18.386, 25.757, 34.426, 28.019, -11.214, 4.723, -0.267, 18.205, -28.276, -23.394, 12.726, 20.516, -15.007, -16.721, -8.938, -23.276, 12.541, 32.117, -17.984, -9.194, 39.417, -0.809, -4.225, 38.698, 3.593, 10.399, 9.894, 1.075, -20.057, -19.103, -8.687, 28.758, 20.685, -11.121, 31.731, -20.427, 29.832, -13.495, -9.576, 4.481, -24.733 };
-		double *tz = new double[80]{ 57.188, 85.58, 107.826, 50.997, 25.308, 32.217, 77.181, 16.656, 15.795, 43.154, 16.288, 26.974, 16.074, 22.083, 24.913, 21.468, 24.815, 12.305, 11.461, 9.725, 55.144, 62.89, 23.62, 11.175, 9.596, 41.528, 8.805, 16.682, 8.593, 10.401, 33.221, 10.55, 21.86, 40.255, 35.92, 9.209, 26.516, 39.175, 11.086, 9.44, 10.832, 9.618, 11.693, 22.953, 31.34, 39.437, 29.985, 9.873, 9.474, 22.652, 10.584, 23.6, 11.377, 29.797, 11.809, 10.799, 19.415, 30.432, 8.73, 10.911, 10.362, 28.543, 16.865, 8.782, 8.551, 12.404, 9.231, 15.883, 26.228, 42.507, 47.761, 46.331, 8.626, 60.048, 21.544, 12.152, 10.376, 8.098, 29.072, 11.727 };
-		sphNogaR = new double[80]{ 25, 25, 25, 25, 25, 25, 25, 16, 16, 16, 16, 16, 16, 16, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11 };
+		float *tx = new float[80]{ -31.586, -54.338, -79.422, -87.392, 20.206, -4.095, -82.568, -81.81, -78.205, -71.239, 12.979, -69.774, 63.242, 52.594, -40.76, -23.899, -101.968, -100.973, 97.261, -53.009, -57.968, -53.987, -50.643, 80.556, 28.291, -37.864, 68.973, 87.525, 50.309, -28.211, -6.579, -93.309, 75.315, -48.179, -68.199, -44.203, 0.674, -25.696, 11.526, -21.359, -38.259, 35.423, 112.634, 40.347, 44.522, -51.104, -49.152, 42.484, 66.355, -34.237, 91.088, 21.634, -54.127, -94.514, -24.88, 108.639, -59.463, -57.292, -11.901, 63.788, 97.003, -33.328, 46.895, 77.757, 39.134, -111.784, -62.769, 54.227, -19.469, -18.397, 3.246, -59.022, 34.878, -63.495, -40.069, -9.402, 81.451, 9.036, -108.271, -5.61 };
+		float *ty = new float[80]{ 14.572, 13.641, 3.318, 8.299, 15.781, 7.412, 6.973, 24.587, -10.463, -12.12, 30.125, 11.12, 0.689, 23.322, 33.213, 33.602, 22.22, -5.586, 36.211, 17.51, 2.916, -11.824, -1.476, 37.306, -29.022, -14.361, 23.658, 6.199, -1.547, -4.175, 34.579, 9.631, 19.951, 36.1, 33.673, 0.508, -17.353, 35.608, -27.238, 18.386, 25.757, 34.426, 28.019, -11.214, 4.723, -0.267, 18.205, -28.276, -23.394, 12.726, 20.516, -15.007, -16.721, -8.938, -23.276, 12.541, 32.117, -17.984, -9.194, 39.417, -0.809, -4.225, 38.698, 3.593, 10.399, 9.894, 1.075, -20.057, -19.103, -8.687, 28.758, 20.685, -11.121, 31.731, -20.427, 29.832, -13.495, -9.576, 4.481, -24.733 };
+		float *tz = new float[80]{ 57.188, 85.58, 107.826, 50.997, 25.308, 32.217, 77.181, 16.656, 15.795, 43.154, 16.288, 26.974, 16.074, 22.083, 24.913, 21.468, 24.815, 12.305, 11.461, 9.725, 55.144, 62.89, 23.62, 11.175, 9.596, 41.528, 8.805, 16.682, 8.593, 10.401, 33.221, 10.55, 21.86, 40.255, 35.92, 9.209, 26.516, 39.175, 11.086, 9.44, 10.832, 9.618, 11.693, 22.953, 31.34, 39.437, 29.985, 9.873, 9.474, 22.652, 10.584, 23.6, 11.377, 29.797, 11.809, 10.799, 19.415, 30.432, 8.73, 10.911, 10.362, 28.543, 16.865, 8.782, 8.551, 12.404, 9.231, 15.883, 26.228, 42.507, 47.761, 46.331, 8.626, 60.048, 21.544, 12.152, 10.376, 8.098, 29.072, 11.727 };
+		sphNogaR = new float[80]{ 25, 25, 25, 25, 25, 25, 25, 16, 16, 16, 16, 16, 16, 16, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11 };
 		Ks32 = new Vector3[framecount];
 		Ks51 = new Vector3[framecount];
 		for (int i = 0; i < 80; i++) sphNoga[i] = Vector3(tx[i], ty[i], tz[i]);
@@ -3714,7 +4039,7 @@ namespace fsl
 		for (int u = 0; u < framecount; u++)
 		{
 			int t = 0;
-			Img temp(immaxX, immaxY, imgs[u].Value());
+			Add_blurred;
 
 			int gistogramm[256];
 			for (int i = 0; i < 256; i++) gistogramm[i] = 0;
@@ -3727,10 +4052,10 @@ namespace fsl
 
 					for (int _x = -1, dx = (int)(x + _x * 1); _x < 2; _x++, dx = (int)(x + _x * 1))
 						for (int _y = -1, dy = (int)(y + _y * 1); _y < 2; _y++, dy = (int)(y + _y * 1))
-							t += imgs[u].Get(dx, dy);
+							t += imgs[u]GetI(dx, dy);
 					t = t / 9;
 
-					temp.USGet(x, y) = t;
+					blurred[u]USGetI(x, y) = t;
 					gistogramm[t]++;
 				}
 			}
@@ -3751,17 +4076,15 @@ namespace fsl
 				}
 			}
 
-			double up = (max - min) / 255.0;
+			float up = (max - min) / 255.0;
 
 			for (int x = 0; x < immaxX; x++)
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					temp.Set(x, y, (int)std::min(255.0, ((temp.Get(x, y) - min) / up)));
+					blurred[u]SetI(x, y, (int)min_f(255.0, ((blurred[u]USGetI(x, y) - min) / up)));
 				}
 			}
-
-			blurred.push_back(temp);
 		}
 #ifdef M2
 
@@ -3771,7 +4094,7 @@ namespace fsl
 		{
 			for (int y = 0; y < immaxY; y++)
 			{
-				d1.at<uch>(x, y) = blurred[0].USGet(x, y);
+				d1.at<uch>(x, y) = blurred[0]USGetI(x, y);
 			}
 		}
 
@@ -3798,11 +4121,10 @@ namespace fsl
 		{
 			imgs.clear();
 		}
-		Img *T;
 		for (int f = 0; f < framecount; f++)
 		{
-			T = new  Img(frameX, frameY, inframes[f]);
-			imgs.push_back(*T);
+			Add_imgs;
+			for (int x = 0; x < immaxX; x++) for (int y = 0; y < immaxY; y++) imgs[f][x][y] = inframes[f][x][y];
 		}
 #ifdef DebugConsole
 #ifdef M1
@@ -3813,7 +4135,7 @@ namespace fsl
 		{
 			for (int y = 0; y < immaxY; y++)
 			{
-				d1.at<uch>(x, y) = imgs[0].USGet(x, y);
+				d1.at<uch>(x, y) = imgs[0]USGetI(x, y);
 			}
 		}
 
@@ -3841,7 +4163,7 @@ namespace fsl
 	{
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
 		{
-			*sout << voxel.USGet(x, y, z) << uch(13) << uch(10);
+			*sout << USGetVoxel(x, y, z) << uch(13) << uch(10);
 		}
 	}
 

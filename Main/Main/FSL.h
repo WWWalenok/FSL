@@ -16,81 +16,81 @@ namespace fsl
 #define pointsDisp 16
 #define pointsDeep 3
 
-#define random rand() / (double)RAND_MAX
+#define random rand() / (float)RAND_MAX
 #undef uch
 #define uch unsigned char
 
 	struct Vector3
 	{
-		double x, y, z;
+		float x, y, z;
 
 		Vector3();
 
-		Vector3(double _x, double _y, double _z);
+		Vector3(float _x, float _y, float _z);
 
 		Vector3 operator +(Vector3 a);
 
 		Vector3 operator -(Vector3 a);
 
-		Vector3 operator *(double a);
+		Vector3 operator *(float a);
 
-		double operator *(Vector3 a);
+		float operator *(Vector3 a);
 
 		Vector3 operator /(Vector3 a);
 
-		Vector3 operator /(double a);
+		Vector3 operator /(float a);
 
-		void SetLenght(double l);
+		void SetLenght(float l);
 
-		double GetLenght();
+		float GetLenght();
 	};
 
 	struct Vector2
 	{
-		double x, y;
+		float x, y;
 
 		Vector2();
 
-		Vector2(double _x, double _y);
+		Vector2(float _x, float _y);
 
 		Vector2 operator +(Vector2 a);
 
 		Vector2 operator -(Vector2 a);
 
-		Vector2 operator *(double a);
+		Vector2 operator *(float a);
 
-		double operator *(Vector2 a);
+		float operator *(Vector2 a);
 
-		double operator /(Vector2 a);
+		float operator /(Vector2 a);
 
-		Vector2 operator /(double a);
+		Vector2 operator /(float a);
 
 		Vector2 operator !();
 
-		void SetLenght(double l);
+		void SetLenght(float l);
 
-		double GetLenght();
+		float GetLenght();
 	};
 
 	struct Quaternion
 	{
-		double x, y, z, w;
+		float x, y, z, w;
 
 		Quaternion();
 
-		Quaternion(double _x, double _y, double _z, double _w);
+		Quaternion(float _x, float _y, float _z, float _w);
 
 		Quaternion operator +(Quaternion a);
 
 		Quaternion operator -(Quaternion a);
 
-		Quaternion operator *(double a);
+		Quaternion operator *(float a);
 
 		Quaternion operator *(Quaternion a);
 
 		Quaternion operator *(Vector3 a);
 
-		Quaternion operator /(double a);
+		Quaternion operator /(float a);
 
 		Quaternion operator /(Quaternion a);
 
@@ -100,9 +100,9 @@ namespace fsl
 
 		Quaternion operator ~();
 
-		void SetLenght(double l);
+		void SetLenght(float l);
 
-		double GetLenght();
+		float GetLenght();
 	};
 
 	class Img
@@ -143,7 +143,7 @@ namespace fsl
 
 	class Voxel
 	{
-		unsigned char *voxel;
+		unsigned char ***voxel;
 
 		int sx, sy, sz;
 
@@ -154,7 +154,8 @@ namespace fsl
 		unsigned char &USGet(int x, int y, int z);
 		void USSet(int x, int y, int z, unsigned char value);
 		Voxel(int x, int y, int z);
-
+		unsigned char*** GetLink();
+		void Destroy();
 	};
 
 	struct PhisicPoint
