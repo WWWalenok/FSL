@@ -7,7 +7,7 @@
 
 int main()
 {
-	std::string filepath = "E:\\Temp\\In\\TestHotoMobile\\1\\";
+	std::string filepath = "C:\\In\\Foto\\";
 
 	std::string fnames[7]{ "1.jpg","2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg" };
 

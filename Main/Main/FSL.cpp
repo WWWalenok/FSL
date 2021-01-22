@@ -18,13 +18,13 @@
 
 #define _GetBorderDispDebug
 
-#define _UpdateOreintDebug
+#define UpdateOreintDebug
 
-#define _GetFootDebug
+#define GetFootDebug
 
-#define _GetFirstVoxelDebug
+#define GetFirstVoxelDebug
 
-#define _BestTopDebug
+#define BestTopDebug
 
 #define BestStopaDebug
 
@@ -709,62 +709,107 @@ namespace fsl
 				}
 			}
 #endif
-			list[0] = Vector3(148.5, 105, devia[4]);
-			list[1] = Vector3(-148.5, 105, devia[5]);
-			list[2] = Vector3(-148.5, -105, devia[6]);
-			list[3] = Vector3(148.5, -105, devia[7]);
-
-			bb[0] = cams[u][0];
-			bb[1] = cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z;
-			cam[0] = bb[0];
-			cam[3] = bb[0] - bb[1];
-			cam[3].SetLenght(1);
-			cam[2] = cam[3] / Vector3(0, 0, 1);
-			cam[2].SetLenght(1);
-			bba = cam[2] * cams[u][2];
-			bba = sqrt(1 - bba * bba) / -bba;
-			cam[0] = bb[0];
-			cam[3] = bb[0] - bb[1]; cam[3].SetLenght(1);
-			cam[2] = cam[3] / Vector3(0, 0, 1);
-			cam[2].SetLenght(1);
-			cam[1] = cam[3] / cam[2];
-			cam[2] = cam[2] + cam[1] * bba;
-			if ((cam[2] - cams[u][2]).GetLenght() > 0.001)
 			{
-				bba = -bba;
+				list[0] = Vector3(148.5, 105, devia[4]);
+				list[1] = Vector3(-148.5, 105, devia[5]);
+				list[2] = Vector3(-148.5, -105, devia[6]);
+				list[3] = Vector3(148.5, -105, devia[7]);
+				float ta = 0;
+				bb[0] = cams[u][0];
+				bb[1] = cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z;
+				cam[0] = bb[0];
+				cam[3] = bb[0] - bb[1];
+				cam[3].SetLenght(1);
+				cam[2] = cam[3] / Vector3(0, 0, 1);
+				cam[2].SetLenght(1);
+				bba = cam[2] * cams[u][2];
+				bba = sqrt(1 - bba * bba) / -bba;
+				cam[0] = bb[0];
+				cam[3] = bb[0] - bb[1]; cam[3].SetLenght(1);
 				cam[2] = cam[3] / Vector3(0, 0, 1);
 				cam[2].SetLenght(1);
 				cam[1] = cam[3] / cam[2];
 				cam[2] = cam[2] + cam[1] * bba;
-			}
-			cam[2].SetLenght(1);
-			cam[1] = cam[3] / cam[2];
-			cam[1].SetLenght(1);
-
-			bbf = focuss[u];
-
-			for (int i = 0; i < 4; i++)
-			{
-				ToCam(list[i], cam[0], cam[1], cam[2], cam[3], bbf, K)
-				//r = (list[i].x * cam[3].x + list[i].y * cam[3].y + list[i].z * cam[3].z) * bbf / K;
-				//list[i] = Vector3((list[i].x * cam[1].x + list[i].y * cam[1].y + list[i].z * cam[1].z) / r + immaxX / 2, (list[i].x * cam[2].x + list[i].y * cam[2].y + list[i].z * cam[2].z) / r + immaxY / 2, bbf / K);
-			}
-			float Kr = 0;
-			for (int j = 0; j < 4; j++)
-			{
-				float TK = 0;
+				cam[2].SetLenght(1);
+				cam[1] = cam[3] / cam[2];
+				cam[1].SetLenght(1);
+				bbf = focuss[u];
 				for (int i = 0; i < 4; i++)
 				{
-					P.x = list[i].x - lists[u][(i + j < 4) ? i + j : i + j - 4].x;
-					P.y = list[i].y - lists[u][(i + j < 4) ? i + j : i + j - 4].y;
-					P.z = 0;
-					TK += P.x*P.x + P.y*P.y;
+					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], bbf, K)
+						//r = (list[i].x * cam[3].x + list[i].y * cam[3].y + list[i].z * cam[3].z) * bbf / K;
+						//list[i] = Vector3((list[i].x * cam[1].x + list[i].y * cam[1].y + list[i].z * cam[1].z) / r + immaxX / 2, (list[i].x * cam[2].x + list[i].y * cam[2].y + list[i].z * cam[2].z) / r + immaxY / 2, bbf / K);
 				}
-				if (TK < Kr || Kr == 0) Kr = TK;
+				float Kr = 0;
+				for (int j = 0; j < 4; j++)
+				{
+					float TK = 0;
+					for (int i = 0; i < 4; i++)
+					{
+						P.x = list[i].x - lists[u][(i + j < 4) ? i + j : i + j - 4].x;
+						P.y = list[i].y - lists[u][(i + j < 4) ? i + j : i + j - 4].y;
+						P.z = 0;
+						TK += P.x*P.x + P.y*P.y;
+					}
+					if (TK < Kr || Kr == 0) Kr = TK;
+				}
+				KritBB = Kr;
 			}
-			KritBB = Kr;
-			if (Kr > 1000) KritBB *= KritBB;
-			if (Kr > 500)KritBB *= 50;
+
+			{
+				list[0] = Vector3(148.5, 105, devia[4]);
+				list[1] = Vector3(-148.5, 105, devia[5]);
+				list[2] = Vector3(-148.5, -105, devia[6]);
+				list[3] = Vector3(148.5, -105, devia[7]);
+				float ta = 0;
+				b[0] = cams[u][0];
+				b[1] = cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z;
+				cam[0] = b[0];
+				cam[3] = b[0] - b[1];
+				cam[3].SetLenght(1);
+				cam[2] = cam[3] / Vector3(0, 0, 1);
+				cam[2].SetLenght(1);
+				ba = cam[2] * cams[u][2];
+				ba = sqrt(1 - ba * ba) / ba;
+				cam[0] = b[0];
+				cam[3] = b[0] - b[1]; cam[3].SetLenght(1);
+				cam[2] = cam[3] / Vector3(0, 0, 1);
+				cam[2].SetLenght(1);
+				cam[1] = cam[3] / cam[2];
+				cam[2] = cam[2] + cam[1] * ba;
+				cam[2].SetLenght(1);
+				cam[1] = cam[3] / cam[2];
+				cam[1].SetLenght(1);
+				for (int i = 0; i < 4; i++)
+				{
+					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], bbf, K)
+						//r = (list[i].x * cam[3].x + list[i].y * cam[3].y + list[i].z * cam[3].z) * bbf / K;
+						//list[i] = Vector3((list[i].x * cam[1].x + list[i].y * cam[1].y + list[i].z * cam[1].z) / r + immaxX / 2, (list[i].x * cam[2].x + list[i].y * cam[2].y + list[i].z * cam[2].z) / r + immaxY / 2, bbf / K);
+				}
+				float Kr = 0;
+				for (int j = 0; j < 4; j++)
+				{
+					float TK = 0;
+					for (int i = 0; i < 4; i++)
+					{
+						P.x = list[i].x - lists[u][(i + j < 4) ? i + j : i + j - 4].x;
+						P.y = list[i].y - lists[u][(i + j < 4) ? i + j : i + j - 4].y;
+						P.z = 0;
+						TK += P.x*P.x + P.y*P.y;
+					}
+					if (TK < Kr || Kr == 0) Kr = TK;
+				}
+				KritB = Kr;
+			}
+			if (KritB < KritBB)
+			{
+				bba = ba;
+				bb[0] = b[0];
+				bb[1] = b[1];
+				KritBB = KritB;
+			}
+			float Kr = 0;
+
 			int tot = 190000, MW = 210, ME = tot / MW + 1;
 #ifdef DebugConsole
 			int lasteout = -10000000, EOutCount = 25;
@@ -935,6 +980,26 @@ namespace fsl
 
 #ifdef GetNewCamPosDebug
 					d1 = d2.clone();
+					list[0] = lists[u][0];
+					list[1] = lists[u][1];
+					list[2] = lists[u][2];
+					list[3] = lists[u][3];
+					for (int i = 0; i < 4; i++)
+					{
+						Vector3 A = list[i];
+						Vector3 B = list[(i + 1 > 3) ? i + 1 - 4 : i + 1];
+						for (int x = 0; x < 200; x++)
+						{
+							float _x = (x + 1 + 0.25) / (200 + 1.0);
+							P.x = B.x * _x + A.x * (1 - _x);
+							P.y = B.y * _x + A.y * (1 - _x);
+							if (P.x >= 0 && P.x < immaxX - 1 && P.y >= 0 && P.y < immaxY - 1)
+							{
+								t = blurred[u]USGetI((int)P.x, (int)P.y);
+								d1.at<uch>((int)P.x, (int)P.y) = 100;
+							}
+						}
+					}
 					cam[0] = bb[0];
 					cam[3] = bb[0] - bb[1]; cam[3].SetLenght(1);
 					cam[2] = cam[3] / Vector3(0, 0, 1);
@@ -1004,7 +1069,7 @@ namespace fsl
 						}
 					}
 					cv::imshow("d4", d1);
-					cv::waitKey(1);
+					cv::waitKey();
 
 #endif
 				}
@@ -1086,10 +1151,11 @@ namespace fsl
 					d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
 				}
 			}
+			d3 = d2.clone();
 #endif // UpdateOreintDebug
 
 			float krbb = -1, CFxbb, CFybb, CFzbb, CFfbb;
-			int borr, blor;
+			int borr = 1, blor = 1;
 			Vector3 Ks32T, Ks51T, Ks32B, Ks51B, P;
 			for (int E = 0; E < 20; E++)
 			{
@@ -1182,7 +1248,8 @@ namespace fsl
 							{
 								//kr++;
 #ifdef UpdateOreintDebug
-								d1.at<uch>(buff[x][y][2], buff[x][y][3]) = (buff[x][y][0] > 125) ? 0 : 150;
+								int tx = buff[x][y][2], ty = buff[x][y][3]; if (tx < 0) tx = 0; if (tx > immaxX - 1) tx = immaxX - 1; if (ty < 0) ty = 0; if (ty > immaxY - 1) ty = immaxY - 1;
+								d1.at<uch>(tx, ty) = (buff[x][y][0] > 125) ? 0 : 150;
 
 #endif // UpdateOreintDebug
 							}
@@ -1190,7 +1257,8 @@ namespace fsl
 							{
 								kr++;
 #ifdef UpdateOreintDebug
-								d1.at<uch>(buff[x][y][2], buff[x][y][3]) = (buff[x][y][0] > 125) ? 100 : 255;
+								int tx = buff[x][y][2], ty = buff[x][y][3]; if (tx < 0) tx = 0; if (tx > immaxX - 1) tx = immaxX - 1; if (ty < 0) ty = 0; if (ty > immaxY - 1) ty = immaxY - 1;
+								d1.at<uch>(tx, ty) = (buff[x][y][0] > 125) ? 100 : 255;
 #endif // UpdateOreintDebug
 							}
 						}
@@ -1294,7 +1362,7 @@ namespace fsl
 		float tr = 17, tr2 = tr * 1, tr3 = tr * 1, w1 = 1, w2 = 0.7, w3 = 0.2, r;
 		float Krit, KritB, KritBB;
 		float Krite, KriteB, KriteBB;
-		float k1, k2, k1b, k1bb, k2b, k2bb, k11, k12, k21, k22;
+		float k1 = 1, k2 = 1, k1b = 1, k1bb = 1, k2b = 1, k2bb = 1, k11 = 1, k12 = 1, k21 = 1, k22 = 1;
 		Vector3 P1, P2, P, TA, TB, *A, *B, *C, *D;
 		int t;
 
@@ -1349,8 +1417,8 @@ namespace fsl
 			float KritBBO[4]{ -1e20 ,-1e20 ,-1e20 ,-1e20 };
 			for (int trys = 0; trys < 3; trys++) for (int i = 0; i < 4; i++)
 			{
-				KritBB = -1e20;
-				KriteBB = -KritBBO[i];
+				KritBB = -KritBBO[i];
+				KriteBB = -1e20;
 				A = &lists[u][(i + 0 > 3) ? i + 0 - 4 : i + 0];
 				B = &lists[u][(i + 1 > 3) ? i + 1 - 4 : i + 1];
 				C = &lists[u][(i + 2 > 3) ? i + 2 - 4 : i + 2];
@@ -1476,7 +1544,7 @@ namespace fsl
 				A->y = D->y + (A->y - D->y) * k1bb;
 				B->x = C->x + (B->x - C->x) * k2bb;
 				B->y = C->y + (B->y - C->y) * k2bb;
-				KritBBO[i] = KritBB * 0.9;
+				KritBBO[i] = KritBB * 0.95;
 #ifdef DebugConsole
 				std::cout << "Try " << trys << ", border " << i << ", Krit " << KritBB << std::endl;
 #endif // DEBUG
@@ -1988,8 +2056,8 @@ namespace fsl
 				points[i].a.x = 0;
 				points[i].a.y = 0;
 			}
-			//if (errcounter != 10)points[freez].loc = Ko;
-			freez = -1;
+			if (errcounter != 10)points[freez].loc = Ko;
+			//freez = -1;
 #ifdef GetFootDebug
 			d2 = d1.clone();
 			for (int i = 1; i < 200; i++)
@@ -2682,7 +2750,7 @@ namespace fsl
 					{
 						base = P2;
 						int by = immaxY * u;
-						ToCam(base, u);
+						ToCam(base, cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K);
 						if (base.x >= 0 && base.x <= immaxX - 1 && base.y >= 0 && base.y <= immaxY - 1)
 							d2.at<uch>((int)base.x, (int)base.y + by) = 255;
 					}
@@ -2748,6 +2816,12 @@ namespace fsl
 #ifdef DebugConsole
 		std::cout << "BestStopa" << std::endl;
 #endif // DEBUG
+#ifdef BestStopaDebug
+		cv::Mat d1(VoxelX, VoxelY, 0), d2, d3;
+#endif // BestStopaDebug
+
+#ifdef BestStopaDebug
+#endif // BestStopaDebug
 		std::vector<Vector3*> &ch = males, correct;
 		std::vector<int> &chsizes = malesizes;
 		if (!ismale)
@@ -2805,7 +2879,28 @@ namespace fsl
 				for (int i = -3, _i = 0; i <= 3; i++, _i++) if (i != 0)
 					chablon[i1][_i] = chablon[i1][3] + X * 2.0 * i;
 			}
-
+#ifdef BestStopaDebug
+			{
+				float tx, ty;
+				for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
+				{
+					d1.at<uch>(x, y) = 0;
+				}
+				d2 = d1.clone();
+				for (int j = 0; j < 30; j++)
+				{
+					for (int i = -3, _i = 0; i <= 3; i++, _i++)
+					{
+						tx = chablon[j][_i].x; ty = chablon[j][_i].y;
+						if (tx < 0) tx = 0; if (tx > VoxelX - 1) tx = VoxelX - 1;
+						if (ty < 0) ty = 0; if (ty > VoxelY - 1) ty = VoxelY - 1;
+						d2.at<uch>(tx, ty) = 255 / (1 + abs(i));
+					}
+				}
+				cv::imshow("BestStopaDebug", d2);
+				cv::waitKey();
+			}
+#endif // BestStopaDebug
 			float G11 = -40, G12 = 40, G21 = -30, G22 = 30, G31 = -25 / 180 * PI, G32 = 25 / 180 * PI, G41 = 0.7, G42 = 1.3, Kritb = -1e20, xb, yb, fib, zb, r, co, si;
 
 			Vector2 Cen;
@@ -4082,7 +4177,7 @@ namespace fsl
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					blurred[u]SetI(x, y, (int)min_f(255.0, ((blurred[u]USGetI(x, y) - min) / up)));
+					blurred[u]SetI(x, y, max_f(0, (int)min_f(255.0, ((blurred[u]USGetI(x, y) - min) / up))));
 				}
 			}
 		}
