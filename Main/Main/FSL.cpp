@@ -1309,7 +1309,6 @@ namespace fsl
 				r = (A.y + D.y) - (B.y + C.y);
 				if (r > 0) oreint[u] = 1; else oreint[u] = 2;
 			}
-
 			if (oreint[u] != 1)
 			{
 				for (int i = 0; i < 4; i++) { cams[u][i].x = -cams[u][i].x; cams[u][i].y = -cams[u][i].y; }
@@ -1414,10 +1413,10 @@ namespace fsl
 			cv::waitKey(0);
 
 #endif
-			float KritBBO[4]{ -1e20 ,-1e20 ,-1e20 ,-1e20 };
+			float KritBBO[4]{ -1e10F ,-1e10F ,-1e10F ,-1e10F };
 			for (int trys = 0; trys < 3; trys++) for (int i = 0; i < 4; i++)
 			{
-				KritBB = -KritBBO[i];
+				KritBB = KritBBO[i];
 				KriteBB = -1e20;
 				A = &lists[u][(i + 0 > 3) ? i + 0 - 4 : i + 0];
 				B = &lists[u][(i + 1 > 3) ? i + 1 - 4 : i + 1];
@@ -1978,7 +1977,7 @@ namespace fsl
 			}
 
 #endif // GetFootDebug
-			P = Vector3(-55, 0, -300) * oreint[u] + cams[u][0];
+			P = Vector3(-55 * oreint[u], 0, 300) + cams[u][0];
 			r = focuss[u] / K / (P * cams[u][3]);
 			P = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
 			Ko = Vector2(P.x, P.y);
@@ -2056,8 +2055,8 @@ namespace fsl
 				points[i].a.x = 0;
 				points[i].a.y = 0;
 			}
-			if (errcounter != 10)points[freez].loc = Ko;
-			//freez = -1;
+			//if (errcounter != 10)points[freez].loc = Ko;
+			freez = -1;
 #ifdef GetFootDebug
 			d2 = d1.clone();
 			for (int i = 1; i < 200; i++)
@@ -2118,10 +2117,10 @@ namespace fsl
 					R2 = (points[i2].loc - points[i1].loc); r2 = R2.GetLenght() + 1e-20;
 					R3 = (points[i_].loc - points[i1].loc); r3 = R3.GetLenght() + 1e-20;
 					R4 = (points[i3].loc - points[i1].loc); r4 = R4.GetLenght() + 1e-20;
-					points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2 + R3.x * (rmid * 2 - r3) / r3 * 0.01 + R4.x * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
-					points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2 + R3.y * (rmid * 2 - r3) / r3 * 0.01 + R4.y * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
-					//points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
-					//points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
+					//points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2 + R3.x * (rmid * 2 - r3) / r3 * 0.01 + R4.x * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
+					//points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2 + R3.y * (rmid * 2 - r3) / r3 * 0.01 + R4.y * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
+					points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
+					points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
 
 
 				}
@@ -2286,20 +2285,55 @@ namespace fsl
 				if (r == 0) r = 1;
 				for (int i = -1; i <= r + 1; i++)
 					counter[u]SetI((int)(V1.x * i / r + V2.x * (1 - i / r)), (int)(V1.y * i / r + V2.y * (1 - i / r)), 255);
+				V2 = V1 - V2; V2 = !V2; V2.SetLenght(1);
+				V1 = V1 + V2;
+				counter[u]SetI((int)V1.x, (int)V1.y, 100);
 			}
-			counter[u]SetI((int)Ks32[u].x, (int)Ks32[u].y, 100);
-			//counter[u]SetI((int)Ks51[u].x, (int)Ks51[u].y, 100);
+
+			for3(400)
+			{
+				V1 = points[i1].loc;
+				V2 = points[i2].loc;
+				V2 = V1 - V2; V2 = !V2; V2.SetLenght(0.5);
+				bool isin = false;
+				V1 = points[i1].loc;
+				V1 = V1 + V2 * 4.0;
+				float l = 0;
+				while (V1.x < immaxX - 1 && V1.x > 0 && V1.y < immaxY - 1 && V1.y > 0)
+				{
+					V1.x += V2.x;
+					V1.y += V2.y;
+					if (counter[u][int(V1.x)][int(V1.y)] == 0)
+					{
+						isin = true;
+						V1.x = -10;
+						l += 0.5;
+					}
+
+				}
+				if (l < 11) continue;
+	
+				V1 = points[i1].loc;
+				V2 = points[i2].loc;
+				V2 = V1 - V2; V2 = !V2;
+				if (isin) V2.SetLenght(10.0);
+				else V2.SetLenght(-10.0);
+				V1 = points[i1].loc;
+				V1 = V1 + V2;
+				counter[u]SetI((int)V1.x, (int)V1.y, 100);
+			}
+
 #ifdef GetFootDebug
 			d3 = d1.clone();
 			for (int x = 0; x < immaxX; x++)
 			{
 				for (int y = 0; y < immaxY; y++)
 				{
-					d3.at<uch>(x, y) = counter[u]USGetI(x, y);
+					d3.at<uch>(x, y) = (counter[u]USGetI(x, y) == 100) ? 255 : ((counter[u]USGetI(x, y) == 255) ? 50 : 0);
 				}
 			}
 			cv::imshow("GetFootDebugContur", d3);
-			cv::waitKey(1);
+			cv::waitKey();
 #endif // GetFootDebug
 			int count = 1;
 			while (count != 0)
@@ -2307,7 +2341,8 @@ namespace fsl
 				for (int n1 = 0; n1 < 2; n1++)for (int n2 = 0; n2 < 2; n2++)if (count != 0)
 				{
 					count = 0;
-					for (int k1 = 1, x = (n1 == 0) ? k1 : immaxX - 1 - k1; k1 < immaxX - 1; k1++, x = (n1 == 0) ? k1 : immaxX - 1 - k1) for (int k2 = 1, y = (n2 == 0) ? k2 : immaxY - 1 - k2; k2 < immaxY - 1; k2++, y = (n2 == 0) ? k2 : immaxY - 1 - k2)
+					int  oldx = -1, oldy = -1;
+					for (int k1 = 1, x = (n1 == 0) ? k1 : immaxX - 1 - k1, flage = 0; k1 < immaxX - 1; k1++, x = (n1 == 0) ? k1 : immaxX - 1 - k1, flage = 0) for (int k2 = 1, y = (n2 == 0) ? k2 : immaxY - 1 - k2; k2 < immaxY - 1; k2++, y = (n2 == 0) ? k2 : immaxY - 1 - k2)
 					{
 						if (counter[u]GetI(x, y) == 0)
 						{
@@ -2331,6 +2366,32 @@ namespace fsl
 							count++;
 							counter[u]SetI(x, y, 255);
 						}
+						/*if (oldx > -1 && oldy > -1)
+						{
+							if (counter[u][x][y] != 0)
+								if (counter[u][x][y] != 0)
+									if (flage == 1)
+									{
+										flage = 2;
+									}
+							if(counter[u][x][y] == 0)
+								if (counter[u][oldx][oldy] != 0)
+								{
+									if (flage == 0)
+									{
+										flage = 1;
+									}
+									if (flage == 1)
+									{
+										counter[u][x][y] = 255;
+									}
+									if (flage == 2)
+										flage = 0;
+								}
+
+						}
+						oldx = x;
+						oldy = y;*/
 					}
 				}
 			}
