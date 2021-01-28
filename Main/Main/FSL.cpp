@@ -2309,7 +2309,7 @@ namespace fsl
 				{
 					V1.x += V2.x;
 					V1.y += V2.y;
-					if (counter[u][int(V1.x)][int(V1.y)] != 0)
+					if (counter[u][int(V1.x)][int(V1.y)] > 1)
 					{
 						isin = true;
 						V1.x = -10;
@@ -2330,7 +2330,6 @@ namespace fsl
 			}
 
 #ifdef GetFootDebug
-			d3 = d1.clone();
 			for (int x = 0; x < immaxX; x++)
 			{
 				for (int y = 0; y < immaxY; y++)
