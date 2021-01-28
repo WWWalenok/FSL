@@ -18,7 +18,7 @@
 
 #define _GetBorderDispDebug
 
-#define UpdateOreintDebug
+#define _UpdateOreintDebug
 
 #define GetFootDebug
 
@@ -2287,37 +2287,43 @@ namespace fsl
 					counter[u]SetI((int)(V1.x * i / r + V2.x * (1 - i / r)), (int)(V1.y * i / r + V2.y * (1 - i / r)), 255);
 				V2 = V1 - V2; V2 = !V2; V2.SetLenght(1);
 				V1 = V1 + V2;
-				counter[u]SetI((int)V1.x, (int)V1.y, 100);
+				//counter[u]SetI((int)V1.x, (int)V1.y, 100);
 			}
 
-			for3(400)
+#ifdef GetFootDebug
+			d3 = d1.clone();
+#endif // GetFootDebug
+			for(int i0 = 0, i1 = 5, i2 = 10; i0 < 400; i0 += 10, i1 = (i1 + 10 < 400) ? i1 + 10: i1 + 10 - 400, i2 = (i2 + 10 < 400) ? i2 + 10 : i2 + 10 - 400)
 			{
-				V1 = points[i1].loc;
+				V1 = points[i0].loc;
 				V2 = points[i2].loc;
-				V2 = V1 - V2; V2 = !V2; V2.SetLenght(0.5);
+				if (V1.x < immaxX - 10 && V1.x > 9 && V1.y < immaxY - 10 && V1.y > 9); else continue;
+				if (V2.x < immaxX - 10 && V2.x > 9 && V2.y < immaxY - 10 && V2.y > 9); else continue;
+				V2 = V1 - V2; V2 = !V2; V2.SetLenght(1);
 				bool isin = false;
 				V1 = points[i1].loc;
-				V1 = V1 + V2 * 4.0;
+				V1 = V1 + V2 * 10.0;
+				V2 = V2 / 3.0;
 				float l = 0;
 				while (V1.x < immaxX - 1 && V1.x > 0 && V1.y < immaxY - 1 && V1.y > 0)
 				{
 					V1.x += V2.x;
 					V1.y += V2.y;
-					if (counter[u][int(V1.x)][int(V1.y)] == 0)
+					if (counter[u][int(V1.x)][int(V1.y)] != 0)
 					{
 						isin = true;
 						V1.x = -10;
-						l += 0.5;
 					}
-
+					l += 0.5;
+#ifdef GetFootDebug
+					if (V1.x < immaxX - 1 && V1.x > 0 && V1.y < immaxY - 1 && V1.y > 0)
+						if (counter[u][int(V1.x)][int(V1.y)] < 2)
+							counter[u][int(V1.x)][int(V1.y)] = 1;
+#endif // GetFootDebug
 				}
-				if (l < 11) continue;
-	
-				V1 = points[i1].loc;
-				V2 = points[i2].loc;
-				V2 = V1 - V2; V2 = !V2;
-				if (isin) V2.SetLenght(10.0);
-				else V2.SetLenght(-10.0);
+				if (l < 20) continue;
+				if (isin) V2 = V2 * 30;
+				else V2 = V2 * -30;
 				V1 = points[i1].loc;
 				V1 = V1 + V2;
 				counter[u]SetI((int)V1.x, (int)V1.y, 100);
@@ -2330,6 +2336,11 @@ namespace fsl
 				for (int y = 0; y < immaxY; y++)
 				{
 					d3.at<uch>(x, y) = (counter[u]USGetI(x, y) == 100) ? 255 : ((counter[u]USGetI(x, y) == 255) ? 50 : 0);
+					if (counter[u][x][y] == 1)
+					{
+						d3.at<uch>(x, y) = 150;
+						counter[u][x][y] = 0;
+					}
 				}
 			}
 			cv::imshow("GetFootDebugContur", d3);
