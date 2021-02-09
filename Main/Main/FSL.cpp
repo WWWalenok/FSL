@@ -18,7 +18,7 @@
 
 #define _GetBorderDispDebug
 
-#define _UpdateOreintDebug
+#define UpdateOreintDebug
 
 #define _GetFootDebug
 
@@ -596,73 +596,71 @@ namespace fsl
 		}
 		AO.z = 0; BO.z = 0; CO.z = 0; DO.z = 0;
 		Vector3 BA, BB, BC, BD;
-		float bx1 = 0, by1 = 0, bx2 = 0, by2 = 0, Kri = 1e10, dr = 2 * K; int counter = 0;
-		for (int l = 0; l < 4; l++)
+		float bx1 = 0, by1 = 0, bx2 = 0, by2 = 0, bx3 = 0, by3 = 0, bx4 = 0, by4 = 0, Kri = 1e10, dr = 2 * K; int counter = 0;
+		for (int l = 0; l < 5; l++)
 		{
-			float te = 1e10, tx1, ty1, tx2, ty2;
+			float te = 1e10, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4;
 			for (float x1 = -1; x1 <= 1; x1++)
 				for (float y1 = -1; y1 <= 1; y1++)
 					for (float x2 = -1; x2 <= 1; x2++)
 						for (float y2 = -1; y2 <= 1; y2++)
-						{
-							float e;
-							A.z = 0; B.z = 0; C.z = 0; D.z = 0;
-							A.x += bx1 + dr * x1; B.x += bx1 + dr * x1; C.x += bx2 + dr * x2; D.x += bx2 + dr * x2;
-							A.y += by1 + dr * y1; B.y += by2 + dr * y2; C.y += by2 + dr * y2; D.y += by1 + dr * y1;
-							a = M[0][3]; b = M[1][3]; c = M[2][3];
-							lamda = -((D.x - A.x * a) * (D.x - C.x * c) + (D.y - A.y * a) * (D.y - C.y * c)) / (1 - a - c + a * c);
-							lamda = sqrt(abs(lamda));
-							A.z = lamda; B.z = lamda; C.z = lamda, D.z = lamda;
-							R1 = A * M[0][3] - B * M[1][3]; R2 = C * M[2][3] - B * M[1][3];
-							l1 = sqrt(R1*R1);
-							l2 = sqrt(R2*R2);
-							d = l1 / l2;
-							R1 = Vector3(1, d, 0);
-							R2 = Vector3(1, -d, 0);
-							d1 = -(297 + d * 210) / (1 + d * d);
-							d2 = -(297 - d * 210) / (1 + d * d);
-							R1 = R1 * d1;
-							R2 = R2 * d2;
-							d1 = R1.GetLenght();
-							d2 = R2.GetLenght();
-							if (d1 < d2)
-							{
-								e = d1;
-								d1 = R1.x;
-								d2 = R1.y;
-							}
-							else
-							{
-								e = d2;
-								d1 = R2.x;
-								d2 = R2.y;
-							}
-							if (e < te)
-							{
-								te = e;
-								tx1 = x1 * dr; ty1 = y1 * dr;
-								tx2 = x2 * dr; ty2 = y2 * dr;
-							}
-							A.x = AO.x; A.y = AO.y;
-							B.x = BO.x; B.y = BO.y;
-							C.x = CO.x; C.y = CO.y;
-							D.x = DO.x; D.y = DO.y;
-						}
+							for (float x3 = -1; x3 <= 1; x3++)
+								for (float y3 = -1; y3 <= 1; y3++)
+									for (float x4 = -1; x4 <= 1; x4++)
+										for (float y4 = -1; y4 <= 1; y4++)
+										{
+											float e;
+											A.z = 0; B.z = 0; C.z = 0; D.z = 0;
+											A.x += bx1 + dr * x1; B.x += bx2 + dr * x2; C.x += bx3 + dr * x3; D.x += bx4 + dr * x4;
+											A.y += by1 + dr * y1; B.y += by2 + dr * y2; C.y += by3 + dr * y3; D.y += by4 + dr * y4;
+											a = M[0][3]; b = M[1][3]; c = M[2][3];
+											lamda = -((D.x - A.x * a) * (D.x - C.x * c) + (D.y - A.y * a) * (D.y - C.y * c)) / (1 - a - c + a * c);
+											lamda = sqrt(abs(lamda));
+											A.z = lamda; B.z = lamda; C.z = lamda, D.z = lamda;
+											R1 = A * M[0][3] - B * M[1][3]; R2 = C * M[2][3] - B * M[1][3];
+											l1 = sqrt(R1*R1);
+											l2 = sqrt(R2*R2);
+											d = l1 / l2;
+											d1 = -(297 + d * 210) / (1 + d * d);
+											d2 = -(297 - d * 210) / (1 + d * d);
+											if (d1 < d2)
+											{
+												e = d1;
+											}
+											else
+											{
+												e = d2;
+											}
+											if (e < te)
+											{
+												te = e;
+												tx1 = x1 * dr; ty1 = y1 * dr;
+												tx2 = x2 * dr; ty2 = y2 * dr;
+												tx3 = x3 * dr; ty3 = y3 * dr;
+												tx4 = x4 * dr; ty4 = y4 * dr;
+											}
+											A.x = AO.x; A.y = AO.y;
+											B.x = BO.x; B.y = BO.y;
+											C.x = CO.x; C.y = CO.y;
+											D.x = DO.x; D.y = DO.y;
+										}
 			if (te <= Kri)
 			{
 				Kri = te;
 				bx1 += tx1; by1 += ty1;
 				bx2 += tx2; by2 += ty2;
+				bx3 += tx3; by3 += ty3;
+				bx4 += tx4; by4 += ty4;
 			}
-			dr = dr / 1.5;
+			dr = dr / 2;
 		}
 		A.x = AO.x; A.y = AO.y;
 		B.x = BO.x; B.y = BO.y;
 		C.x = CO.x; C.y = CO.y;
 		D.x = DO.x; D.y = DO.y;
 		A.z = 0; B.z = 0; C.z = 0; D.z = 0;
-		A.x += bx1; B.x += bx1; C.x += bx2; D.x += bx2;
-		A.y += by1; B.y += by2; C.y += by2; D.y += by1;
+		A.x += bx1; B.x += bx2; C.x += bx3; D.x += bx4;
+		A.y += by1; B.y += by2; C.y += by3; D.y += by4;
 		a = M[0][3]; b = M[1][3]; c = M[2][3];
 		lamda = -((D - A * a) * (D - C * c)) / (1 - a - c + a * c);
 		lamda = sqrt(abs(lamda));
@@ -782,7 +780,7 @@ namespace fsl
 				{
 					d2.at<uch>(x, y) = imgs[u]USGetI(x, y);
 				}
-			}
+		}
 #endif
 			{
 				list[0] = Vector3(148.5, 105, devia[4]);
@@ -1168,14 +1166,14 @@ namespace fsl
 								d1.at<uch>((int)P.x, (int)P.y) = 0;
 							}
 						}
-					}
+				}
 					cv::imshow("d4", d1);
 					cv::waitKey();
 
 #endif
-				}
-#endif // DEBUG
 			}
+#endif // DEBUG
+	}
 			cam[0] = bb[0];
 			cam[3] = bb[0] - bb[1]; cam[3].SetLenght(1);
 			cam[2] = cam[3] / Vector3(0, 0, 1);
@@ -1213,7 +1211,7 @@ namespace fsl
 			fout.close();
 
 #endif // SaveBackUp
-		}
+}
 
 
 	}
@@ -1285,6 +1283,52 @@ namespace fsl
 			Kritb = 1e10;
 
 			{
+				tcam[0] = cams[u][0];
+				tcam[1] = cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z;
+				cam[0] = tcam[0];
+				cam[3] = tcam[0] - tcam[1];
+				cam[3].SetLenght(1);
+				cam[2] = cam[3] / Vector3(0, 0, 1);
+				cam[2].SetLenght(1);
+				cam[1] = cam[3] / cam[2]; cam[1].SetLenght(1);
+				ba = cam[1] * cams[u][2] / (cam[2] * cams[u][2]);
+				//ba = sqrt(1 - ba * ba) / -ba;
+				GetCamBasis(cam, tcam[0], tcam[1], ba);
+				/*
+				#define GetCamBasis(cam, campos, targetpos, alpha){\
+					cam[3] = campos - targetpos; cam[3].SetLenght(1); cam[2] = cam[3] / Vector3(0, 0, 1);\
+					cam[2].SetLenght(1); cam[1] = cam[3] / cam[2]; cam[1].SetLenght(1);\
+					cam[2] = cam[2] + cam[1] * alpha; cam[2].SetLenght(1);\
+					cam[1] = cam[3] / cam[2]; cam[1].SetLenght(1);\
+					cam[0] = campos; \
+				};\
+				*/
+				list[0] = Vector3(148.5, 105, devia[4]);
+				list[1] = Vector3(-148.5, 105, devia[5]);
+				list[2] = Vector3(-148.5, -105, devia[6]);
+				list[3] = Vector3(148.5, -105, devia[7]);
+				for (int i = 0; i < 4; i++)
+				{
+					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
+				}
+				float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
+					+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
+					+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
+					+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
+
+				if (Krit < Kritb)
+				{
+					Kritb = Krit;
+					bcam[0] = cam[0];
+					bcam[1] = cam[1];
+					bcam[2] = cam[2];
+					bcam[3] = cam[3];
+					xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = tcam[1].x; yLb = tcam[1].y; fiKb = ba;
+					fiKb = ba;
+				}
+			}
+
+			{
 				list[0] = Vector3(148.5, 105, devia[4]);
 				list[1] = Vector3(-148.5, 105, devia[5]);
 				list[2] = Vector3(-148.5, -105, devia[6]);
@@ -1297,44 +1341,6 @@ namespace fsl
 				cam[2] = cam[3] / Vector3(0, 0, 1);
 				cam[2].SetLenght(1);
 				ba = cam[2] * cams[u][2];
-				ba = sqrt(1 - ba * ba) / -ba;
-				GetCamBasis(cam, tcam[0], tcam[1], ba);
-
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				for (int i = 0; i < 4; i++)
-				{
-					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
-				}
-				float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
-					+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
-					+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
-					+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
-
-				if (Krit < Kritb)
-				{
-					Kritb = Krit;
-					bcam[0] = tcam[0];
-					bcam[1] = tcam[1];
-					fiKb = ba;
-				}
-			}
-
-			{
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				tcam[0] = cams[u][0];
-				tcam[1] = cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z;
-				cam[0] = tcam[0];
-				cam[3] = tcam[0] - tcam[1];
-				cam[3].SetLenght(1);
-				cam[2] = cam[3] / Vector3(0, 0, 1);
-				cam[2].SetLenght(1);
-				ba = cam[2] * cams[u][2];
 				ba = sqrt(1 - ba * ba) / ba;
 				GetCamBasis(cam, tcam[0], tcam[1], ba);
 
@@ -1354,245 +1360,267 @@ namespace fsl
 				if (Krit < Kritb)
 				{
 					Kritb = Krit;
-					bcam[0] = tcam[0];
-					bcam[1] = tcam[1];
+					bcam[0] = cam[0];
+					bcam[1] = cam[1];
+					bcam[2] = cam[2];
+					bcam[3] = cam[3];
+					xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = tcam[1].x; yLb = tcam[1].y; fiKb = ba;
 					fiKb = ba;
 				}
 			}
+			/*
+						{
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							tcam[0] = Vector3(-cams[u][0].y, cams[u][0].x, cams[u][0].z);
+							tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
+							cam[0] = tcam[0];
+							cam[3] = tcam[0] - tcam[1];
+							cam[3].SetLenght(1);
+							cam[2] = cam[3] / Vector3(0, 0, 1);
+							cam[2].SetLenght(1);
+							ba = cam[2] * cams[u][2];
+							ba = sqrt(1 - ba * ba) / -ba;
 
-			{
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				tcam[0] = Vector3(-cams[u][0].y, cams[u][0].x, cams[u][0].z);
-				tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
-				cam[0] = tcam[0];
-				cam[3] = tcam[0] - tcam[1];
-				cam[3].SetLenght(1);
-				cam[2] = cam[3] / Vector3(0, 0, 1);
-				cam[2].SetLenght(1);
-				ba = cam[2] * cams[u][2];
-				ba = sqrt(1 - ba * ba) / -ba;
+							GetCamBasis(cam, tcam[0], tcam[1], ba);
 
-				GetCamBasis(cam, tcam[0], tcam[1], ba);
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							for (int i = 0; i < 4; i++)
+							{
+								ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
+							}
+							float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
+								+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
+								+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
+								+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
 
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				for (int i = 0; i < 4; i++)
-				{
-					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
-				}
-				float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
-					+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
-					+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
-					+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
+							if (Krit < Kritb)
+							{
+								Kritb = Krit;
+								bcam[0] = cam[0];
+								bcam[1] = cam[1];
+								bcam[2] = cam[2];
+								bcam[3] = cam[3];
+								xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = cam[1].x; yLb = cam[1].y; fiKb = ba;
+								fiKb = ba;
+							}
+						}
 
-				if (Krit < Kritb)
-				{
-					Kritb = Krit;
-					bcam[0] = tcam[0];
-					bcam[1] = tcam[1];
-					fiKb = ba;
-				}
-			}
+						{
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							tcam[0] = Vector3(-cams[u][0].y, cams[u][0].x, cams[u][0].z);
+							tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
+							cam[0] = tcam[0];
+							cam[3] = tcam[0] - tcam[1];
+							cam[3].SetLenght(1);
+							cam[2] = cam[3] / Vector3(0, 0, 1);
+							cam[2].SetLenght(1);
+							ba = cam[2] * cams[u][2];
+							ba = sqrt(1 - ba * ba) / ba;
 
-			{
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				tcam[0] = Vector3(-cams[u][0].y, cams[u][0].x, cams[u][0].z);
-				tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
-				cam[0] = tcam[0];
-				cam[3] = tcam[0] - tcam[1];
-				cam[3].SetLenght(1);
-				cam[2] = cam[3] / Vector3(0, 0, 1);
-				cam[2].SetLenght(1);
-				ba = cam[2] * cams[u][2];
-				ba = sqrt(1 - ba * ba) / ba;
+							GetCamBasis(cam, tcam[0], tcam[1], ba);
 
-				GetCamBasis(cam, tcam[0], tcam[1], ba);
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							for (int i = 0; i < 4; i++)
+							{
+								ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
+							}
+							float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
+								+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
+								+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
+								+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
 
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				for (int i = 0; i < 4; i++)
-				{
-					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
-				}
-				float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
-					+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
-					+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
-					+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
+							if (Krit < Kritb)
+							{
+								Kritb = Krit;
+								bcam[0] = cam[0];
+								bcam[1] = cam[1];
+								bcam[2] = cam[2];
+								bcam[3] = cam[3];
+								xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = cam[1].x; yLb = cam[1].y; fiKb = ba;
+								fiKb = ba;
+							}
+						}
 
-				if (Krit < Kritb)
-				{
-					Kritb = Krit;
-					bcam[0] = tcam[0];
-					bcam[1] = tcam[1];
-					fiKb = ba;
-				}
-			}
+						{
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							tcam[0] = Vector3(-cams[u][0].x, -cams[u][0].y, cams[u][0].z);
+							tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
+							cam[0] = tcam[0];
+							cam[3] = tcam[0] - tcam[1];
+							cam[3].SetLenght(1);
+							cam[2] = cam[3] / Vector3(0, 0, 1);
+							cam[2].SetLenght(1);
+							ba = cam[2] * cams[u][2];
+							ba = sqrt(1 - ba * ba) / -ba;
 
-			{
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				tcam[0] = Vector3(-cams[u][0].x, -cams[u][0].y, cams[u][0].z);
-				tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
-				cam[0] = tcam[0];
-				cam[3] = tcam[0] - tcam[1];
-				cam[3].SetLenght(1);
-				cam[2] = cam[3] / Vector3(0, 0, 1);
-				cam[2].SetLenght(1);
-				ba = cam[2] * cams[u][2];
-				ba = sqrt(1 - ba * ba) / -ba;
+							GetCamBasis(cam, tcam[0], tcam[1], ba);
 
-				GetCamBasis(cam, tcam[0], tcam[1], ba);
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							for (int i = 0; i < 4; i++)
+							{
+								ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
+							}
+							float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
+								+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
+								+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
+								+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
 
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				for (int i = 0; i < 4; i++)
-				{
-					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
-				}
-				float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
-					+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
-					+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
-					+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
+							if (Krit < Kritb)
+							{
+								Kritb = Krit;
+								bcam[0] = cam[0];
+								bcam[1] = cam[1];
+								bcam[2] = cam[2];
+								bcam[3] = cam[3];
+								xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = cam[1].x; yLb = cam[1].y; fiKb = ba;
+								fiKb = ba;
+							}
+						}
 
-				if (Krit < Kritb)
-				{
-					Kritb = Krit;
-					bcam[0] = tcam[0];
-					bcam[1] = tcam[1];
-					fiKb = ba;
-				}
-			}
+						{
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							tcam[0] = Vector3(-cams[u][0].x, -cams[u][0].y, cams[u][0].z);
+							tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
+							cam[0] = tcam[0];
+							cam[3] = tcam[0] - tcam[1];
+							cam[3].SetLenght(1);
+							cam[2] = cam[3] / Vector3(0, 0, 1);
+							cam[2].SetLenght(1);
+							ba = cam[2] * cams[u][2];
+							ba = sqrt(1 - ba * ba) / ba;
 
-			{
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				tcam[0] = Vector3(-cams[u][0].x, -cams[u][0].y, cams[u][0].z);
-				tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
-				cam[0] = tcam[0];
-				cam[3] = tcam[0] - tcam[1];
-				cam[3].SetLenght(1);
-				cam[2] = cam[3] / Vector3(0, 0, 1);
-				cam[2].SetLenght(1);
-				ba = cam[2] * cams[u][2];
-				ba = sqrt(1 - ba * ba) / ba;
+							GetCamBasis(cam, tcam[0], tcam[1], ba);
 
-				GetCamBasis(cam, tcam[0], tcam[1], ba);
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							for (int i = 0; i < 4; i++)
+							{
+								ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
+							}
+							float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
+								+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
+								+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
+								+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
 
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				for (int i = 0; i < 4; i++)
-				{
-					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
-				}
-				float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
-					+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
-					+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
-					+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
+							if (Krit < Kritb)
+							{
+								Kritb = Krit;
+								bcam[0] = cam[0];
+								bcam[1] = cam[1];
+								bcam[2] = cam[2];
+								bcam[3] = cam[3];
+								xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = cam[1].x; yLb = cam[1].y; fiKb = ba;
+								fiKb = ba;
+							}
+						}
 
-				if (Krit < Kritb)
-				{
-					Kritb = Krit;
-					bcam[0] = tcam[0];
-					bcam[1] = tcam[1];
-					fiKb = ba;
-				}
-			}
+						{
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							tcam[0] = Vector3(cams[u][0].y, -cams[u][0].x, cams[u][0].z);
+							tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
+							cam[0] = tcam[0];
+							cam[3] = tcam[0] - tcam[1];
+							cam[3].SetLenght(1);
+							cam[2] = cam[3] / Vector3(0, 0, 1);
+							cam[2].SetLenght(1);
+							ba = cam[2] * cams[u][2];
+							ba = sqrt(1 - ba * ba) / -ba;
 
-			{
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				tcam[0] = Vector3(cams[u][0].y, -cams[u][0].x, cams[u][0].z);
-				tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
-				cam[0] = tcam[0];
-				cam[3] = tcam[0] - tcam[1];
-				cam[3].SetLenght(1);
-				cam[2] = cam[3] / Vector3(0, 0, 1);
-				cam[2].SetLenght(1);
-				ba = cam[2] * cams[u][2];
-				ba = sqrt(1 - ba * ba) / -ba;
+							GetCamBasis(cam, tcam[0], tcam[1], ba);
 
-				GetCamBasis(cam, tcam[0], tcam[1], ba);
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							for (int i = 0; i < 4; i++)
+							{
+								ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
+							}
+							float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
+								+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
+								+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
+								+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
 
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				for (int i = 0; i < 4; i++)
-				{
-					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
-				}
-				float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
-					+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
-					+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
-					+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
+							if (Krit < Kritb)
+							{
+								Kritb = Krit;
+								bcam[0] = cam[0];
+								bcam[1] = cam[1];
+								bcam[2] = cam[2];
+								bcam[3] = cam[3];
+								xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = cam[1].x; yLb = cam[1].y; fiKb = ba;
+								fiKb = ba;
+							}
+						}
 
-				if (Krit < Kritb)
-				{
-					Kritb = Krit;
-					bcam[0] = tcam[0];
-					bcam[1] = tcam[1];
-					fiKb = ba;
-				}
-			}
+						{
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							tcam[0] = Vector3(cams[u][0].y, -cams[u][0].x, cams[u][0].z);
+							tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
+							cam[0] = tcam[0];
+							cam[3] = tcam[0] - tcam[1];
+							cam[3].SetLenght(1);
+							cam[2] = cam[3] / Vector3(0, 0, 1);
+							cam[2].SetLenght(1);
+							ba = cam[2] * cams[u][2];
+							ba = sqrt(1 - ba * ba) / ba;
 
-			{
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				tcam[0] = Vector3(cams[u][0].y, -cams[u][0].x, cams[u][0].z);
-				tcam[1] = (cams[u][0] - cams[u][3] / cams[u][3].z * cams[u][0].z) * -1;
-				cam[0] = tcam[0];
-				cam[3] = tcam[0] - tcam[1];
-				cam[3].SetLenght(1);
-				cam[2] = cam[3] / Vector3(0, 0, 1);
-				cam[2].SetLenght(1);
-				ba = cam[2] * cams[u][2];
-				ba = sqrt(1 - ba * ba) / ba;
+							GetCamBasis(cam, tcam[0], tcam[1], ba);
 
-				GetCamBasis(cam, tcam[0], tcam[1], ba);
+							list[0] = Vector3(148.5, 105, devia[4]);
+							list[1] = Vector3(-148.5, 105, devia[5]);
+							list[2] = Vector3(-148.5, -105, devia[6]);
+							list[3] = Vector3(148.5, -105, devia[7]);
+							for (int i = 0; i < 4; i++)
+							{
+								ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
+							}
+							float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
+								+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
+								+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
+								+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
 
-				list[0] = Vector3(148.5, 105, devia[4]);
-				list[1] = Vector3(-148.5, 105, devia[5]);
-				list[2] = Vector3(-148.5, -105, devia[6]);
-				list[3] = Vector3(148.5, -105, devia[7]);
-				for (int i = 0; i < 4; i++)
-				{
-					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
-				}
-				float Krit = (list[0].x - lists[u][0].x) * (list[0].x - lists[u][0].x) + (list[0].y - lists[u][0].y) * (list[0].y - lists[u][0].y)
-					+ (list[1].x - lists[u][1].x) * (list[1].x - lists[u][1].x) + (list[1].y - lists[u][1].y) * (list[1].y - lists[u][1].y)
-					+ (list[2].x - lists[u][2].x) * (list[2].x - lists[u][2].x) + (list[2].y - lists[u][2].y) * (list[2].y - lists[u][2].y)
-					+ (list[3].x - lists[u][3].x) * (list[3].x - lists[u][3].x) + (list[3].y - lists[u][3].y) * (list[3].y - lists[u][3].y);
-
-				if (Krit < Kritb)
-				{
-					Kritb = Krit;
-					bcam[0] = tcam[0];
-					bcam[1] = tcam[1];
-					fiKb = ba;
-				}
-			}
+							if (Krit < Kritb)
+							{
+								Kritb = Krit;
+								bcam[0] = cam[0];
+								bcam[1] = cam[1];
+								bcam[2] = cam[2];
+								bcam[3] = cam[3];
+								xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = cam[1].x; yLb = cam[1].y; fiKb = ba;
+								fiKb = ba;
+							}
+						}
+			*/
 
 			zumb = focuss[u];
 #ifdef DebugConsole
@@ -1623,11 +1651,14 @@ namespace fsl
 						}
 					}
 				}
+
+				GetCamBasis(bcam, tcam[0], tcam[1], ba);
+
 				cam[0] = bcam[0]; cam[1] = bcam[1]; cam[2] = bcam[2]; cam[3] = bcam[3];
-				list[0] = Vector3(148.5, 105, devia[4]) + cam[0];
-				list[1] = Vector3(-148.5, 105, devia[5]) + cam[0];
-				list[2] = Vector3(-148.5, -105, devia[6]) + cam[0];
-				list[3] = Vector3(148.5, -105, devia[7]) + cam[0];
+				list[0] = Vector3(148.5, 105, devia[4]);
+				list[1] = Vector3(-148.5, 105, devia[5]);
+				list[2] = Vector3(-148.5, -105, devia[6]);
+				list[3] = Vector3(148.5, -105, devia[7]);
 				for (int i = 0; i < 4; i++)
 				{
 					ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
@@ -1731,7 +1762,7 @@ namespace fsl
 
 				GetCamBasis(cam, s[0], s[1], fiK);
 
-					list[0] = Vector3(148.5, 105, devia[4]);
+				list[0] = Vector3(148.5, 105, devia[4]);
 				list[1] = Vector3(-148.5, 105, devia[5]);
 				list[2] = Vector3(-148.5, -105, devia[6]);
 				list[3] = Vector3(148.5, -105, devia[7]);
@@ -1766,7 +1797,7 @@ namespace fsl
 				if (Krit < Kritb)
 				{
 					Kritb = Krit;
-					xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = cam[1].x; yLb = cam[1].y; zumb = zum; fiKb = fiK;
+					xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = s[1].x; yLb = s[1].y; zumb = zum; fiKb = fiK;
 					bcam[0] = cam[0];
 					bcam[1] = cam[1];
 					bcam[2] = cam[2];
@@ -1802,10 +1833,10 @@ namespace fsl
 						}
 					}
 					cam[0] = bcam[0]; cam[1] = bcam[1]; cam[2] = bcam[2]; cam[3] = bcam[3];
-					list[0] = Vector3(148.5, 105, devia[4]) + cam[0];
-					list[1] = Vector3(-148.5, 105, devia[5]) + cam[0];
-					list[2] = Vector3(-148.5, -105, devia[6]) + cam[0];
-					list[3] = Vector3(148.5, -105, devia[7]) + cam[0];
+					list[0] = Vector3(148.5, 105, devia[4]);
+					list[1] = Vector3(-148.5, 105, devia[5]);
+					list[2] = Vector3(-148.5, -105, devia[6]);
+					list[3] = Vector3(148.5, -105, devia[7]);
 					for (int i = 0; i < 4; i++)
 					{
 						ToCam(list[i], cam[0], cam[1], cam[2], cam[3], zumb, K)
@@ -1826,7 +1857,7 @@ namespace fsl
 								d1.at<uch>((int)P.x, (int)P.y) = 200;
 							}
 						}
-					}
+			}
 					cv::imshow("d4", d1);
 					cv::waitKey(1);
 
@@ -1871,8 +1902,8 @@ namespace fsl
 				for (int y = 0; y < immaxY; y++)
 				{
 					d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
-				}
-			}
+		}
+	}
 			d3 = d2.clone();
 #endif // UpdateOreintDebug
 
@@ -1903,18 +1934,18 @@ namespace fsl
 #ifdef UpdateOreintDebug
 					d1 = d2.clone();
 #endif // UpdateOreintDebug
-					for (int i = 0; i < 80; i++)
-					{
-						proectednoga[i] = sphNoga[i]; proectednoga[i].x *= CFz * orr; proectednoga[i].y *= CFz * orr * lor; proectednoga[i].z *= CFz;
-						proectednoga[i] = rot.operator&(proectednoga[i]);
-						proectednoga[i].x += CFx; proectednoga[i].y += CFy;
-						P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
-						ToCam(proectednoga[i], cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K)
-							//r = focuss[u] / K / (P * cams[u][3]);
-							//proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
-							proectednoga[i].z = t;
-					}
-					if ((proectednoga[51].y > proectednoga[30].y) && ((abs(proectednoga[51].y - proectednoga[30].y)) > 3 * abs(proectednoga[51].x - proectednoga[01].x))) continue;
+					//for (int i = 0; i < 80; i++)
+					//{
+					//	proectednoga[i] = sphNoga[i]; proectednoga[i].x *= CFz * orr; proectednoga[i].y *= CFz * orr * lor; proectednoga[i].z *= CFz;
+					//	proectednoga[i] = rot.operator&(proectednoga[i]);
+					//	proectednoga[i].x += CFx; proectednoga[i].y += CFy;
+					//	P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
+					//	ToCam(proectednoga[i], cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K)
+					//		//r = focuss[u] / K / (P * cams[u][3]);
+					//		//proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
+					//		proectednoga[i].z = t;
+					//}
+					//if ((proectednoga[51].y > proectednoga[30].y) && ((abs(proectednoga[51].y - proectednoga[30].y)) > 3 * abs(proectednoga[51].x - proectednoga[01].x))) continue;
 
 #define Oreintdisp 50
 
@@ -1939,8 +1970,8 @@ namespace fsl
 						}
 					}
 					avg /= (float)(Oreintdisp * Oreintdisp);
-					float kr = 0;
-
+					float kr = 0, tr;
+					Vector3 Dir, N;
 					for (int x = 0; x < Oreintdisp; x++)
 					{
 						for (int y = 0; y < Oreintdisp; y++)
@@ -1951,10 +1982,20 @@ namespace fsl
 							for (int i = 0; i < 80 && !isin; i++)
 							{
 								t = sphNogaR[i] * 900;
-								t = t * t / (proectednoga[i].z);
+								N = sphNoga[i] - cams[u][0];
+								Dir = cams[u][3] * focuss[u] + cams[u][1] * (buff[x][y][2] - immaxX / 2.0) * K + cams[u][2] * (buff[x][y][3] - immaxY / 2.0) * K;
+								Dir.y /= Dir.x; Dir.z /= Dir.x; Dir.x = 0;
+								P.x = (N.x * N.x + N.y * N.y + N.z * N.z) / (N.x + Dir.y * N.y + Dir.z * N.z);
+								P.y = P.x * Dir.y - N.y;
+								P.z = P.x * Dir.z - N.z;
+								P.x = P.x - N.x;
+								tr = P.x * P.x + P.y * P.y + P.z * P.z;
+								if (tr < t*t)
+									isin = true;
+								/*t = t * t / (proectednoga[i].z);
 								P = Vector3(proectednoga[i].x - buff[x][y][2], proectednoga[i].y - buff[x][y][3], 0);
 								if (t > P.x * P.x + P.y * P.y)
-									isin = true;
+									isin = true;*/
 							}
 							if (isin)
 							{
@@ -2024,7 +2065,7 @@ namespace fsl
 				cv::waitKey(1);
 #endif // UpdateOreintDebug
 
-			}
+				}
 			if (u != 3);
 			else
 			{
@@ -2074,13 +2115,13 @@ namespace fsl
 			cv::waitKey(1);
 #endif // UpdateOreintDebug
 
-		}
+			}
 
 #ifdef DebugConsole
 		for (int u = 0; u < framecount; u++)std::cout << cams[u][0].x << ' ' << cams[u][0].y << std::endl;
 #endif // DEBUG
 #ifdef UpdateOreintDebug
-		cv::Mat Campos(1000, 1000, 0); for (int x = 0; x < 1000; x++)for (int y = 0; y < 1000; y++) Campos.at<uch>(x, y) = (x - 500 < -297/2.0 || x - 500 > 297 / 2.0 || y - 500 < -210 / 2.0 || y - 500 > 210 / 2.0) ? 0 : 100;
+		cv::Mat Campos(1000, 1000, 0); for (int x = 0; x < 1000; x++)for (int y = 0; y < 1000; y++) Campos.at<uch>(x, y) = (x - 500 < -297 / 2.0 || x - 500 > 297 / 2.0 || y - 500 < -210 / 2.0 || y - 500 > 210 / 2.0) ? 0 : 100;
 		for (int u = 0; u < framecount; u++)
 		{
 			float x, y;
@@ -2090,8 +2131,8 @@ namespace fsl
 				y = cams[u][0].y + i * cams[u][2].y + 500;
 				if (x >= 0 && x < 1000 && y >= 0 && y < 1000) Campos.at<uch>(x, y) = 255;
 			}
-			
-		}
+
+			}
 		cv::imshow("Campos", Campos);
 
 		cv::waitKey(1);
@@ -2154,7 +2195,7 @@ namespace fsl
 						}
 					}
 				}
-			}
+	}
 			cv::imshow("d4", d1);
 			cv::waitKey(1);
 
@@ -2234,12 +2275,12 @@ namespace fsl
 #ifdef GetBestedBorderDebug
 									d1.at<uch>((int)P.x, (int)P.y) = (t > 255 / 2) ? 0 : 255;
 #endif
-								}
+							}
 								else
 								{
 									buff[x][pointsDeep] = 1;
 								}
-							}
+						}
 						}
 						Krit = 0; Krite = 0;
 						int q = 0;
@@ -2277,14 +2318,14 @@ namespace fsl
 							cv::imshow("d1", d1);
 							cv::waitKey(1);
 #endif
-						}
 					}
+				}
 					if (KritB > KritBB)
 					{
 						KritBB = KritB;
 						k1bb = k1b; k2bb = k2b;
 					}
-				}
+			}
 				A->x = D->x + (A->x - D->x) * k1bb;
 				A->y = D->y + (A->y - D->y) * k1bb;
 				B->x = C->x + (B->x - C->x) * k2bb;
@@ -2689,14 +2730,14 @@ namespace fsl
 						}
 					}
 				}
-			}
+		}
 
 			cv::imshow("dis", dis);
 			cv::waitKey(100);
 #endif // M1
 
-		}
 	}
+					}
 
 	void GetFoot()
 	{
@@ -2719,7 +2760,7 @@ namespace fsl
 				for (int y = 0; y < immaxY; y++)
 				{
 					d1.at<uch>(x, y) = blurred[u]USGetI(x, y);
-				}
+	}
 			}
 
 #endif // GetFootDebug
@@ -2810,7 +2851,7 @@ namespace fsl
 				for (int x = -1; x < 2; x++)for (int y = -1; y < 2; y++)
 				{
 					d2.at<uch>(max_f(min_f(points[i].loc.x + x, immaxX - 1.0), 0.0), max_f(min_f(points[i].loc.y + y, immaxY - 1.0), 0.0)) = (d1.at<uch>(max_f(min_f(points[i].loc.x, immaxX - 1.0), 0.0), max_f(min_f(points[i].loc.y, immaxY - 1.0), 0.0)) > 128) ? 0 : 255;
-				}
+			}
 			}
 			cv::imshow("GetFootDebug", d2);
 			cv::waitKey(1);
@@ -2888,10 +2929,10 @@ namespace fsl
 							_x = (points[i].loc.x + x < 1) ? 1 : ((points[i].loc.x + x > immaxX - 2) ? immaxX - 2 : points[i].loc.x + x);
 							_y = (points[i].loc.y + y < 1) ? 1 : ((points[i].loc.y + y > immaxY - 2) ? immaxY - 2 : points[i].loc.y + y);
 							d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
-						}
+				}
 					cv::imshow("GetFootDebug", d2);
 					cv::waitKey(1);
-				}
+			}
 #endif // GetFootDebug
 			}
 #ifdef DebugConsole
@@ -2915,7 +2956,7 @@ namespace fsl
 					_x = (points[i].loc.x + x < 1) ? 1 : ((points[i].loc.x + x > immaxX - 2) ? immaxX - 2 : points[i].loc.x + x);
 					_y = (points[i].loc.y + y < 1) ? 1 : ((points[i].loc.y + y > immaxY - 2) ? immaxY - 2 : points[i].loc.y + y);
 					d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
-				}
+			}
 			cv::imshow("GetFootDebug", d2);
 			cv::waitKey(1);
 #endif // GetFootDebug
@@ -3006,7 +3047,7 @@ namespace fsl
 					_x = (points[i].loc.x + x < 1) ? 1 : ((points[i].loc.x + x > immaxX - 2) ? immaxX - 2 : points[i].loc.x + x);
 					_y = (points[i].loc.y + y < 1) ? 1 : ((points[i].loc.y + y > immaxY - 2) ? immaxY - 2 : points[i].loc.y + y);
 					d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
-				}
+			}
 			cv::imshow("GetFootDebug", d2);
 			cv::waitKey(1);
 #endif // GetFootDebug
@@ -3066,7 +3107,7 @@ namespace fsl
 						if (counter[u][int(V1.x)][int(V1.y)] < 2)
 							counter[u][int(V1.x)][int(V1.y)] = 1;
 #endif // GetFootDebug
-				}
+					}
 				if (l < 20) continue;
 				if (isin) V2 = V2 * 30;
 				else V2 = V2 * -30;
@@ -3182,8 +3223,8 @@ namespace fsl
 			}
 			fout.close();
 #endif // SaveBackUp
-		}
-	}
+			}
+			}
 
 #pragma endregion
 
@@ -3373,11 +3414,11 @@ namespace fsl
 						size += boost * boost;
 					}
 				}
-//#ifdef GetFirstVoxelDebug
-//				for (int x = 0; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, u) > 0) VoxelL.at<uch>(x, y) = 255; else VoxelL.at<uch>(x, y) = 0;
-//				cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
-//				cv::waitKey();
-//#endif // GetFirstVoxelDebug
+				//#ifdef GetFirstVoxelDebug
+				//				for (int x = 0; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, u) > 0) VoxelL.at<uch>(x, y) = 255; else VoxelL.at<uch>(x, y) = 0;
+				//				cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
+				//				cv::waitKey();
+				//#endif // GetFirstVoxelDebug
 			}
 
 #ifdef GetFirstVoxelDebug
@@ -3486,7 +3527,7 @@ namespace fsl
 
 						cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
 						cv::waitKey(1);
-					}
+				}
 #endif // GetFirstVoxelDebug
 
 				}
@@ -3513,7 +3554,7 @@ namespace fsl
 
 			cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
 			cv::waitKey(1);
-		}
+			}
 #endif // GetFirstVoxelDebug
 		for (int i = 0; i < varcount; i++) KritsVar[i] *= ((i > 1 && i < framecount + 1) ? 0.94 : ((i == 1) ? 1 : 0.88)) * ((variant[i][0] == 0) ? 0.96 : 1)* ((variant[i][framecount - 1] == 0) ? 0.96 : 1) * ((variant[i][framecount / 2 + 1] == 0) ? 0.94 : 1);
 
@@ -3572,8 +3613,8 @@ namespace fsl
 							ToCam(base, cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K);
 							if (base.x >= 0 && base.x <= immaxX - 1 && base.y >= 0 && base.y <= immaxY - 1)
 								d2.at<uch>((int)base.x, (int)base.y + by) = 255;
-						}
-					}
+			}
+			}
 #endif // GetFirstVoxelDebug
 #ifdef DebugConsole
 				if (x * VoxelY * VoxelZ + y * VoxelZ + z + 3 > lastSay + dsay) { pc += 10; lastSay += dsay; std::cout << pc << '%' << std::endl; }
@@ -3608,7 +3649,7 @@ namespace fsl
 		//ClearVoxel();
 
 		usedCamera = new int[framecount]; for (int i = 0; i < framecount; i++) usedCamera[i] = variant[best][i];
-	}
+		}
 
 	void GetBestVoxel()
 	{
@@ -3638,7 +3679,7 @@ namespace fsl
 #ifdef BestStopaDebug
 		cv::Mat d1(VoxelX, VoxelY, 0), d2, d3;
 #endif // BestStopaDebug
-		
+
 #ifdef BestStopaDebug
 #endif // BestStopaDebug
 		std::vector<Vector3*> &ch = males, correct;
@@ -3710,15 +3751,15 @@ namespace fsl
 				{
 					for (int i = -3, _i = 0; i <= 3; i++, _i++)
 					{
-						tx = chablon[j][_i].x + VoxelX / 2.0; ty = chablon[j][_i].y + VoxelY /2.0;
+						tx = chablon[j][_i].x + VoxelX / 2.0; ty = chablon[j][_i].y + VoxelY / 2.0;
 						if (tx < 0) tx = 0; if (tx > VoxelX - 1) tx = VoxelX - 1;
 						if (ty < 0) ty = 0; if (ty > VoxelY - 1) ty = VoxelY - 1;
 						d2.at<uch>(tx, ty) = 255 / (1 + abs(i));
 					}
-				}
+			}
 				cv::imshow("BestStopaDebug", d2);
 				cv::waitKey();
-			}
+		}
 #endif // BestStopaDebug
 			float G11 = -40, G12 = 40, G21 = -30, G22 = 30, G31 = -25 / 180 * PI, G32 = 25 / 180 * PI, G41 = 0.7, G42 = 1.3, Kritb = -1e20, xb, yb, fib, sb, r, co, si;
 
@@ -3803,20 +3844,20 @@ namespace fsl
 				{
 					for (int z = 0; z < 20; z++)
 					{
-						if (GetVoxel(x,y, z) > 0)
+						if (GetVoxel(x, y, z) > 0)
 						{
 							d1.at<uch>(x, y) = 50;
 							z = 21;
 						}
 					}
-					
+
 				}
 				d2 = d1.clone();
 				for (int j = 0; j < chsizes[n]; j++)
 				{
 					tx = correct[n][j].x + VoxelX / 2.0; ty = correct[n][j].y + VoxelY / 2.0;
-					if(tx > 0 && ty > 0 && tx < VoxelX - 1 && ty < VoxelY - 1) d2.at<uch>(tx, ty) = 255;
-				}
+					if (tx > 0 && ty > 0 && tx < VoxelX - 1 && ty < VoxelY - 1) d2.at<uch>(tx, ty) = 255;
+	}
 				cv::imshow("BestStopaDebug", d2);
 				cv::waitKey();
 			}
@@ -4040,7 +4081,7 @@ namespace fsl
 			base = Vector3(base * Cams[u][1] * r + 200 / 2, base * Cams[u][2] * r + 100 / 2, focus / KS);
 			if (base.x >= 0 && base.x <= 199 && base.y >= 0 && base.y <= 99)
 				base.z = 1;
-		}
+	}
 
 #endif // BestTopDebug
 		float *ix = new float[NS] { -120.415, -118.223, -107.241, -92.491, -76.224, -59.869, -43.488, -27.181, -10.797, 5.474, 21.693, 37.937, 54.23, 70.581, 86.815, 102.924, 118.374, 126.633, 123.11, 114.115, 102.974, 89.941, 76.335, 61.995, 45.691, 29.353, 13.098, -3.187, -19.441, -35.626, -51.862, -68.153, -84.333, -99.562, -112.899 };
@@ -4128,7 +4169,7 @@ namespace fsl
 				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
 				VoxelL.at<uch>(tx, ty) = 255 / (2 + _j / 3.0);
-			}
+		}
 			cv::imshow("BestTopDebugVoxelLayer", VoxelL);
 			cv::waitKey();
 		}
@@ -4263,10 +4304,10 @@ namespace fsl
 							tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 							ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
 							VoxelL.at<uch>(tx, ty) = 255 / (1 + abs(_j) * 0.5);
-						}
-					}
-#endif // BestTopDebug
 				}
+			}
+#endif // BestTopDebug
+		}
 			}
 			if (KritB > KritBB)
 			{
@@ -4471,7 +4512,7 @@ namespace fsl
 				dx = LegLeo[i].x; if (dx < 0) dx = 0; if (dx > VoxelX - 1)dx = VoxelX - 1;
 				dy = LegLeo[i].z; if (dy < 0) dy = 0; if (dy > VoxelZ - 1)dy = VoxelZ - 1;
 				Base2.at<uch>(dx, dy) = 255;
-			}
+		}
 			cv::imshow("BestTopDebugLayer", Base2);
 			cv::waitKey(1);
 		}
@@ -4623,7 +4664,7 @@ namespace fsl
 				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
 				Base2.at<uch>(tx, ty) = 100;
-			}
+				}
 
 			cv::imshow("BestTopDebugLayer", Base2);
 			cv::waitKey(1);
@@ -5042,7 +5083,7 @@ namespace fsl
 		cv::waitKey(1);
 
 #endif // M1
-	}
+				}
 
 	void InitUserStat(bool male)
 	{
@@ -5084,7 +5125,7 @@ namespace fsl
 
 #endif // M1
 #endif // DEBUG
-	}
+		}
 
 	void InitEtalon(std::vector<Vector3*> _male, std::vector<int> _malesizes, std::vector<Vector3*> _female, std::vector<int> _femalesizes)
 	{
@@ -5132,4 +5173,4 @@ namespace fsl
 
 		Out();
 	}
-}
+	}

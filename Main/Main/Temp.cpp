@@ -23,7 +23,7 @@
 //}
 //for (int k = 0; k < 30; k++)
 //{
-//	double minr = 1e30, temp = 0;
+//	float minr = 1e30, temp = 0;
 //	int minnum = 0;
 //	for (int i = 0; i < chsizes[n]; i++)
 //	{
@@ -38,12 +38,12 @@
 //}
 // конец создани шаблона
 
-//double **buffer = new double*[100];
+//float **buffer = new float*[100];
 //for (int i = 0; i < 100; i++)
 //{
-//	buffer[i] = new double[100];
+//	buffer[i] = new float[100];
 //}
-//double x, y, dx = maxX - minX, dy = maxY - minY; dx /= 100.0; dy /= 100.0;
+//float x, y, dx = maxX - minX, dy = maxY - minY; dx /= 100.0; dy /= 100.0;
 //for (int i = 0; i < 100; i++)
 //{
 //	for (int j = 0; j < 100; j++)
@@ -67,17 +67,17 @@
 	//void GetCamPos(int u)
 	//{
 	//	Vector3 AT, BT, CT, DT, O;
-	//	double dig = std::sqrt(immaxX * immaxX + immaxY * immaxY);
-	//	double t = 43.26661530556787151743 / dig;
+	//	float dig = std::sqrt(immaxX * immaxX + immaxY * immaxY);
+	//	float t = 43.26661530556787151743 / dig;
 	//	Vector3 A(lists[u][0].x, lists[u][0].y, 0), B(lists[u][1].x, lists[u][1].y, 0), C(lists[u][2].x, lists[u][2].y, 0), D(lists[u][3].x, lists[u][3].y, 0), R1(immaxX / 2.0, immaxY / 2.0, 0), R2, R3, R4;
 	//	A = (A - R1) * t; B = (B - R1) * t; C = (C - R1) * t; D = (D - R1) * t;
 	//	R1 = A - B;
 	//	R2 = B - C;
 	//	R3 = C - D;
 	//	R4 = D - A;
-	//	double a, b, c, d, d1, d2, l1, l2, dmax = 0;
-	//	double M[3][4], maxerr = 1e30;
-	//	double lamda = 50;
+	//	float a, b, c, d, d1, d2, l1, l2, dmax = 0;
+	//	float M[3][4], maxerr = 1e30;
+	//	float lamda = 50;
 	//	if (min(R1 * R1, R3 * R3) < min(R2 * R2, R4 * R4))
 	//	{
 	//		O = A;
@@ -132,7 +132,7 @@
 	//		d1 = R2.x;
 	//		d2 = R2.y;
 	//	}
-	//	double t1 = (297 + d1) / l1, t2 = (210 + d2) / l2;
+	//	float t1 = (297 + d1) / l1, t2 = (210 + d2) / l2;
 	//	d = (t1 + t2) / 2.0;
 	//	switch (rot)
 	//	{
@@ -191,8 +191,8 @@
 
 /*
 
-					double fi = 0;
-					double k = 1;
+					float fi = 0;
+					float k = 1;
 					bool isCorner = false;
 					V2 = (points[i2].loc + points[i0].loc) * 0.5;
 					V2 = V2 - points[i1].loc;
