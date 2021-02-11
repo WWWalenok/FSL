@@ -12,15 +12,15 @@
 
 #define _GetFirsCamPosDebug
 
-#define GetBestedBorderDebug
+#define _GetBestedBorderDebug
 
-#define GetNewCamPosDebug
+#define _GetNewCamPosDebug
 
 #define _GetBorderDispDebug
 
 #define UpdateOreintDebug
 
-#define _GetFootDebug
+#define GetFootDebug
 
 #define GetFirstVoxelDebug
 
@@ -558,18 +558,20 @@ namespace fsl
 	void GetCamPos(int u)
 	{
 		Vector3 AT, BT, CT, DT, O;
-		float t;
+		double t;
 		Vector3 A(lists[u][0].x, lists[u][0].y, 0), B(lists[u][1].x, lists[u][1].y, 0), C(lists[u][2].x, lists[u][2].y, 0), D(lists[u][3].x, lists[u][3].y, 0), R1(immaxX / 2.0, immaxY / 2.0, 0), R2, R3, R4;
 		A = (A - R1) * K; B = (B - R1) * K; C = (C - R1) * K; D = (D - R1) * K;
 		R1 = A - B;
 		R2 = B - C;
 		R3 = C - D;
 		R4 = D - A;
-		float a, b, c, d, d1, d2, l1, l2, dmax = 0;
-		float M[3][4], maxerr = 1e30;
-		float lamda = 50;
+		double a, b, c, d, d1, d2, l1, l2, dmax = 0;
+		double M[3][4], maxerr = 1e30;
+		double lamda = 50;
+		bool flip = false;
 		if (min_f(R1 * R1, R3 * R3) < min_f(R2 * R2, R4 * R4))
 		{
+			flip = true;
 			O = A;
 			A = B; B = C; C = D; D = O;
 		}
@@ -596,20 +598,20 @@ namespace fsl
 		}
 		AO.z = 0; BO.z = 0; CO.z = 0; DO.z = 0;
 		Vector3 BA, BB, BC, BD;
-		float bx1 = 0, by1 = 0, bx2 = 0, by2 = 0, bx3 = 0, by3 = 0, bx4 = 0, by4 = 0, Kri = 1e10, dr = 2 * K; int counter = 0;
+		double bx1 = 0, by1 = 0, bx2 = 0, by2 = 0, bx3 = 0, by3 = 0, bx4 = 0, by4 = 0, Kri = 1e10, dr = 2 * K; int counter = 0;
 		for (int l = 0; l < 5; l++)
 		{
-			float te = 1e10, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4;
-			for (float x1 = -1; x1 <= 1; x1++)
-				for (float y1 = -1; y1 <= 1; y1++)
-					for (float x2 = -1; x2 <= 1; x2++)
-						for (float y2 = -1; y2 <= 1; y2++)
-							for (float x3 = -1; x3 <= 1; x3++)
-								for (float y3 = -1; y3 <= 1; y3++)
-									for (float x4 = -1; x4 <= 1; x4++)
-										for (float y4 = -1; y4 <= 1; y4++)
+			double te = 1e10, tx1 = 0, ty1 = 0, tx2 = 0, ty2 = 0, tx3 = 0, ty3 = 0, tx4 = 0, ty4 = 0;
+			for (double x1 = -1; x1 <= 1; x1++)
+				for (double y1 = -1; y1 <= 1; y1++)
+					for (double x2 = -1; x2 <= 1; x2++)
+						for (double y2 = -1; y2 <= 1; y2++)
+							for (double x3 = -1; x3 <= 1; x3++)
+								for (double y3 = -1; y3 <= 1; y3++)
+									for (double x4 = -1; x4 <= 1; x4++)
+										for (double y4 = -1; y4 <= 1; y4++)
 										{
-											float e;
+											double e;
 											A.z = 0; B.z = 0; C.z = 0; D.z = 0;
 											A.x += bx1 + dr * x1; B.x += bx2 + dr * x2; C.x += bx3 + dr * x3; D.x += bx4 + dr * x4;
 											A.y += by1 + dr * y1; B.y += by2 + dr * y2; C.y += by3 + dr * y3; D.y += by4 + dr * y4;
@@ -687,31 +689,18 @@ namespace fsl
 			d1 = R2.x;
 			d2 = R2.y;
 		}
-		float t1 = (297 + d1) / l1, t2 = (210 + d2) / l2;
+		double t1 = (297 + d1) / l1, t2 = (210 + d2) / l2;
 		d = (t1 + t2) / 2.0;
-		switch (rot)
-		{
-		case 1:
-			t = d;
-			d = c * t; c = b * t; b = a * t; a = t;
-			break;
-		case 2:
-			t = d;
-			t1 = a;
-			a = c * t; c = t1 * t; d = b * t; b = t;
-			break;
-		case 3:
-			t = d;
-			d = a * t; a = b * t; b = c * t; c = t;
-			break;
-		case 0:
-			a = a * d;	b = b * d;	c = c * d;	d = d;
-			break;
-		default:
-			break;
-		}
+		a = a * d;	b = b * d;	c = c * d;	d = d;
 		A = AO; B = BO; C = CO; D = DO;
 		A.z = lamda; B.z = lamda; C.z = lamda, D.z = lamda;
+		if (flip)
+		{
+			O = D;
+			D = C; C = B; B = A; A = O;
+			t = d;
+			d = c; c = b; b = a; a = t;
+		}
 		R1 = Vector3(immaxX / 2.0, immaxY / 2.0, 0);
 		AO = (A / K + R1); BO = (B / K + R1); CO = (C / K + R1); DO = (D / K + R1);
 		AT = A * a;
@@ -719,8 +708,8 @@ namespace fsl
 		CT = C * c;
 		DT = D * d;
 		O = (AT + BT + CT + DT) / 4.0;
-		R1 = BT - AT;
-		R2 = DT - AT;
+		R1 = AT - BT;
+		R2 = AT - DT;
 		R3 = R1 / R2; R3 = R3 / R3.z;
 		R1.SetLenght(1);
 		R2.SetLenght(1);
@@ -1291,7 +1280,8 @@ namespace fsl
 				cam[2] = cam[3] / Vector3(0, 0, 1);
 				cam[2].SetLenght(1);
 				cam[1] = cam[3] / cam[2]; cam[1].SetLenght(1);
-				ba = cam[1] * cams[u][2] / (cam[2] * cams[u][2]);
+				float c1 = cam[1] * cams[u][2], c2 = cam[2] * cams[u][2], t1 = 2 * ((c1) * (c2)) / (1 - (c1) * (c1)), t2 = (1 - (c2) * (c2)) / (1 - (c1) * (c1));
+				ba = c1*c2;
 				//ba = sqrt(1 - ba * ba) / -ba;
 				GetCamBasis(cam, tcam[0], tcam[1], ba);
 				/*
@@ -1340,8 +1330,8 @@ namespace fsl
 				cam[3].SetLenght(1);
 				cam[2] = cam[3] / Vector3(0, 0, 1);
 				cam[2].SetLenght(1);
-				ba = cam[2] * cams[u][2];
-				ba = sqrt(1 - ba * ba) / ba;
+				float t1 = 2 * ((cam[1] * cams[u][2]) * (cam[2] * cams[u][2])) / (1 - (cam[1] * cams[u][2]) * (cam[1] * cams[u][2])), t2 = (1 - (cam[2] * cams[u][2]) * (cam[2] * cams[u][2])) / (1 - (cam[1] * cams[u][2]) * (cam[1] * cams[u][2]));
+				ba = (-t1 - sqrtf(t1*t1 - 4 * t2)) * 0.5;
 				GetCamBasis(cam, tcam[0], tcam[1], ba);
 
 				list[0] = Vector3(148.5, 105, devia[4]);
@@ -1623,6 +1613,7 @@ namespace fsl
 			*/
 
 			zumb = focuss[u];
+			//Kritb = 1e10;
 #ifdef DebugConsole
 			{
 				std::cout << 0 << ' ' << Kritb << ' ';
@@ -1681,7 +1672,7 @@ namespace fsl
 					}
 				}
 				cv::imshow("d4", d1);
-				cv::waitKey();
+				cv::waitKey(1);
 
 #endif
 #endif
@@ -1934,18 +1925,18 @@ namespace fsl
 #ifdef UpdateOreintDebug
 					d1 = d2.clone();
 #endif // UpdateOreintDebug
-					//for (int i = 0; i < 80; i++)
-					//{
-					//	proectednoga[i] = sphNoga[i]; proectednoga[i].x *= CFz * orr; proectednoga[i].y *= CFz * orr * lor; proectednoga[i].z *= CFz;
-					//	proectednoga[i] = rot.operator&(proectednoga[i]);
-					//	proectednoga[i].x += CFx; proectednoga[i].y += CFy;
-					//	P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
-					//	ToCam(proectednoga[i], cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K)
-					//		//r = focuss[u] / K / (P * cams[u][3]);
-					//		//proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
-					//		proectednoga[i].z = t;
-					//}
-					//if ((proectednoga[51].y > proectednoga[30].y) && ((abs(proectednoga[51].y - proectednoga[30].y)) > 3 * abs(proectednoga[51].x - proectednoga[01].x))) continue;
+					for (int i = 0; i < 80; i++)
+					{
+						proectednoga[i] = sphNoga[i]; proectednoga[i].x *= CFz * orr; proectednoga[i].y *= CFz * orr * lor; proectednoga[i].z *= CFz;
+						proectednoga[i] = rot.operator&(proectednoga[i]);
+						proectednoga[i].x += CFx; proectednoga[i].y += CFy;
+						P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
+						ToCam(proectednoga[i], cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K)
+							//r = focuss[u] / K / (P * cams[u][3]);
+							//proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
+							proectednoga[i].z = t;
+					}
+					if ((proectednoga[51].y > proectednoga[30].y) && ((abs(proectednoga[51].y - proectednoga[30].y)) > 3 * abs(proectednoga[51].x - proectednoga[01].x))) continue;
 
 #define Oreintdisp 50
 
@@ -1982,7 +1973,7 @@ namespace fsl
 							for (int i = 0; i < 80 && !isin; i++)
 							{
 								t = sphNogaR[i] * 900;
-								N = sphNoga[i] - cams[u][0];
+								/*N = sphNoga[i] - cams[u][0];
 								Dir = cams[u][3] * focuss[u] + cams[u][1] * (buff[x][y][2] - immaxX / 2.0) * K + cams[u][2] * (buff[x][y][3] - immaxY / 2.0) * K;
 								Dir.y /= Dir.x; Dir.z /= Dir.x; Dir.x = 0;
 								P.x = (N.x * N.x + N.y * N.y + N.z * N.z) / (N.x + Dir.y * N.y + Dir.z * N.z);
@@ -1991,11 +1982,11 @@ namespace fsl
 								P.x = P.x - N.x;
 								tr = P.x * P.x + P.y * P.y + P.z * P.z;
 								if (tr < t*t)
-									isin = true;
-								/*t = t * t / (proectednoga[i].z);
+									isin = true;*/
+								t = t * t / (proectednoga[i].z);
 								P = Vector3(proectednoga[i].x - buff[x][y][2], proectednoga[i].y - buff[x][y][3], 0);
 								if (t > P.x * P.x + P.y * P.y)
-									isin = true;*/
+									isin = true;
 							}
 							if (isin)
 							{
@@ -3089,7 +3080,7 @@ namespace fsl
 				V2 = V1 - V2; V2 = !V2; V2.SetLenght(1);
 				bool isin = false;
 				V1 = points[i1].loc;
-				V1 = V1 + V2 * 10.0;
+				V1 = V1 + V2 * 5.0;
 				V2 = V2 / 3.0;
 				float l = 0;
 				while (V1.x < immaxX - 2 && V1.x > 1 && V1.y < immaxY - 2 && V1.y > 1)
@@ -3101,14 +3092,14 @@ namespace fsl
 						isin = true;
 						V1.x = -10;
 					}
-					l += 0.5;
+					l += 0.3333;
 #ifdef GetFootDebug
 					if (V1.x < immaxX - 1 && V1.x > 0 && V1.y < immaxY - 1 && V1.y > 0)
 						if (counter[u][int(V1.x)][int(V1.y)] < 2)
 							counter[u][int(V1.x)][int(V1.y)] = 1;
 #endif // GetFootDebug
 					}
-				if (l < 20) continue;
+				if (l < 5) continue;
 				if (isin) V2 = V2 * 30;
 				else V2 = V2 * -30;
 				V1 = points[i1].loc;
@@ -3130,7 +3121,7 @@ namespace fsl
 				}
 			}
 			cv::imshow("GetFootDebugContur", d3);
-			cv::waitKey();
+			cv::waitKey(1);
 #endif // GetFootDebug
 			int count = 1;
 			while (count != 0)

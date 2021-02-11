@@ -116,10 +116,10 @@ int main()
 	fsl::GetFirsCamPos();
 	fsl::GetBestedBorder();
 	fsl::GetNewCamPos();
-	//fsl::GetBorderDisp();
-	//fsl::UpdateOreint();
-	//fsl::GetFoot();
-	//fsl::GetFirstVoxel();
+	fsl::GetBorderDisp();
+	fsl::UpdateOreint();
+	fsl::GetFoot();
+	fsl::GetFirstVoxel();
 	//fsl::BestTop();
 	//fsl::InitEtalon(male,maleS,female,femaleS);
 	//fsl::BestStopa();
