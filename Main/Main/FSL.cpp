@@ -1318,7 +1318,7 @@ namespace fsl
 				}
 			}
 
-			{
+			/*{
 				list[0] = Vector3(148.5, 105, devia[4]);
 				list[1] = Vector3(-148.5, 105, devia[5]);
 				list[2] = Vector3(-148.5, -105, devia[6]);
@@ -1357,7 +1357,7 @@ namespace fsl
 					xKb = cam[0].x; yKb = cam[0].y; zKb = cam[0].z; xLb = tcam[1].x; yLb = tcam[1].y; fiKb = ba;
 					fiKb = ba;
 				}
-			}
+			}*/
 			/*
 						{
 							list[0] = Vector3(148.5, 105, devia[4]);
@@ -3415,7 +3415,7 @@ namespace fsl
 #ifdef GetFirstVoxelDebug
 			for (int x = 0; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, u) == 1) VoxelL.at<uch>(x, y) = 255; else VoxelL.at<uch>(x, y) = 0;
 			cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
-			cv::waitKey(10000000);
+			cv::waitKey();
 #endif // GetFirstVoxelDebug
 
 			KritsVar[u] = -1e20;
