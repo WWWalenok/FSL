@@ -179,8 +179,6 @@ namespace fsl
 
 	void GetBestedBorder();
 
-	void GetBorderDisp_new();
-
 	void GetBorderDisp();
 
 	void GetFirstVoxel();
@@ -205,4 +203,7 @@ namespace fsl
 
 	void Podgonka();
 
+	void DebugInitCamPos(std::vector<Vector3*> _cams, std::vector<float> _focuss);
 }
+
+
