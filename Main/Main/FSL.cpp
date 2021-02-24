@@ -18,7 +18,7 @@
 
 #define _GetBorderDispDebug
 
-#define UpdateOreintDebug
+#define _UpdateOreintDebug
 
 #define GetFootDebug
 
@@ -2521,7 +2521,7 @@ namespace fsl
 				V2 = V1 - V2; V2 = !V2; V2.SetLenght(1);
 				bool isin = false;
 				V1 = points[i1].loc;
-				V1 = V1 + V2 * 5.0;
+				V1 = V1 + V2 * 3.0;
 				V2 = V2 / 3.0;
 				float l = 0;
 				while (V1.x < immaxX - 2 && V1.x > 1 && V1.y < immaxY - 2 && V1.y > 1)
@@ -2540,9 +2540,9 @@ namespace fsl
 							counter[u][int(V1.x)][int(V1.y)] = 1;
 #endif // GetFootDebug
 					}
-				if (l < 5) continue;
-				if (isin) V2 = V2 * 30;
-				else V2 = V2 * -30;
+				if (l < 2) continue;
+				if (isin) V2 = V2 * 10;
+				else V2 = V2 * -10;
 				V1 = points[i1].loc;
 				V1 = V1 + V2;
 				counter[u]SetI((int)V1.x, (int)V1.y, 100);
@@ -2826,7 +2826,7 @@ namespace fsl
 		int *oreinVar = new int[varcount];
 		for (int u = 0; u < varcount; u++)			// Поиск лучшего
 		{
-			int z = 5;
+			
 			int size = 0;
 			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) USGetVoxel(x, y, u) = 1;
 			for (int k = 0; k < framecount; k++) if (variant[u][k] == 1)
@@ -2834,23 +2834,29 @@ namespace fsl
 				size = 0;
 				for (int x = 0; x < VoxelX; x += bsize) for (int y = 0; y < VoxelY; y += bsize) if (USGetVoxel(x, y, u) == 1)
 				{
-					P.x = (x - VoxelX / 2.0) * VoxelS; P.y = (y - VoxelY / 2.0) * VoxelS; P.z = z;
-					ToCam(P, cams[k][0], cams[k][1], cams[k][2], cams[k][3], focuss[k], K);
-					if (counter[k]GetI((int)P.x, (int)P.y) == 0)
-						for (int i = 0; i < bsize; i++)for (int j = 0; j < bsize; j++)
-						{
-							GetVoxel(x + i, y + j, u) = 0;
-						}
+					bool istrue = false;
+					for (int z = 0; z < 10; z++)
+					{
+						P.x = (x - VoxelX / 2.0) * VoxelS; P.y = (y - VoxelY / 2.0) * VoxelS; P.z = -z;
+						ToCam(P, cams[k][0], cams[k][1], cams[k][2], cams[k][3], focuss[k], K);
+						if (counter[k]GetI((int)P.x, (int)P.y) > 0)
+							istrue = true;
+					}
+					if(!istrue)
+					for (int i = 0; i < bsize; i++)for (int j = 0; j < bsize; j++)
+					{
+						GetVoxel(x + i, y + j, u) = 0;
+					}
 					else
 					{
 						size += boost * boost;
 					}
 				}
-				//#ifdef GetFirstVoxelDebug
-				//				for (int x = 0; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, u) > 0) VoxelL.at<uch>(x, y) = 255; else VoxelL.at<uch>(x, y) = 0;
-				//				cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
-				//				cv::waitKey();
-				//#endif // GetFirstVoxelDebug
+				#ifdef GetFirstVoxelDebug
+				for (int x = 0; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, u) > 0) VoxelL.at<uch>(x, y) = 255; else VoxelL.at<uch>(x, y) = 0;
+				cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
+				cv::waitKey();
+				#endif // GetFirstVoxelDebug
 			}
 
 #ifdef GetFirstVoxelDebug
