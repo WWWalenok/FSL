@@ -4,10 +4,11 @@
 #include "opencv2/videoio.hpp"
 #include "FSL.h"
 #include <string>
+#include <fstream>
 
 int main()
 {
-	std::string filepath = "C:\\In\\Foto\\TestPod1\\";
+	std::string filepath = "C:\\In\\Foto\\1\\";
 
 	std::string fnames[7]{ "1.jpg","2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg" };
 
@@ -115,24 +116,45 @@ int main()
 	std::vector<fsl::Vector3*> cams;
 	fsl::Vector3 tcam[7][4]
 	{
-		{ Vector3(97.1103, -439.081, 533.998), Vector3(0.405385, -0.675259, -0.613448), Vector3(-0.899661, -0.41093, -0.142187), Vector3(0.156273, -0.610325, 0.775092) },
-		{ Vector3(-98.6518, -393.725, 549.455), Vector3(-0.102226, -0.799678, -0.588812), Vector3(-0.983325, 0.164782, -0.0530756), Vector3(-0.139741, -0.574685, 0.804753) },
-		{ Vector3(-294.511, -233.874, 539.756), Vector3(-0.597757, -0.547814, -0.582427), Vector3(-0.6523, 0.754745, -0.0404218), Vector3(-0.462543, -0.356383, 0.809921) },
-		{ Vector3(343.16, -9.36942, 531.593), Vector3(0.839689, 0.028981, -0.539182), Vector3(0.00679937, -0.9975, -0.0430267), Vector3(0.540034, -0.0325203, 0.839267) },
-		{ Vector3(-249.672, 270.77, 578.205), Vector3(-0.651733, 0.544522, -0.524762), Vector3(0.657616, 0.750281, -0.0381985), Vector3(-0.373646, 0.370708, 0.848719) },
-		{ Vector3(-38.6406, 351.02, 590.123), Vector3(-0.180001, 0.839736, -0.508996), Vector3(0.980356, 0.184203, -0.0427977), Vector3(-0.0579394, 0.507751, 0.858172) },
-		{ Vector3(156.648, 339.328, 578.496), Vector3(0.39665, 0.753701, -0.520806), Vector3(0.891406, -0.448609, 0.0296832), Vector3(0.211681, 0.476959, 0.851464) }
+		{ Vector3(146.454, -320.45, 532.073),
+Vector3(0.270018, -0.821729, -0.498484),
+Vector3(-0.94579, -0.319238, 0.0139353),
+Vector3(0.170968, -0.468746, 0.865318) },
+		{ Vector3(-1.34209, -378.289, 387.734),
+Vector3(-0.0958808, -0.721271, -0.683523),
+Vector3(-0.993802, 0.0749839, 0.06028),
+Vector3(-0.00779747, -0.68705, 0.726087) },
+		{ Vector3(-201.12, -189.953, 454.153),
+Vector3(-0.621523, -0.530666, -0.573349),
+Vector3(-0.683316, 0.724853, 0.0698392),
+Vector3(-0.379702, -0.43653, 0.815637) },
+		{ Vector3(-311.884, 20.9627, 562.429),
+Vector3(-0.851977, 0.022531, -0.519868),
+Vector3(0.061181, 0.995045, -0.0571405),
+Vector3(-0.516803, 0.080613, 0.850449) },
+		{ Vector3(-5.89123, 109.014, 182.213),
+Vector3(-0.544956, 0.743729, -0.382775),
+Vector3(0.833293, 0.530427, -0.155741),
+Vector3(-0.0872098, 0.403856, 0.90885) },
+		{ Vector3(1.44728, 316.039, 416.221),
+Vector3(-0.00121847, 0.835258, -0.54679),
+Vector3(0.997966, 0.016064, 0.022315),
+Vector3(-0.027467, 0.546538, 0.834934) },
+		{ Vector3(220.761, 297.56, 443.751),
+Vector3(0.329264, 0.71171, -0.617803),
+Vector3(0.886572, -0.456075, -0.0528919),
+Vector3(0.320437, 0.532019, 0.783667)}
 	};
 
 	float ert[7]
 	{
-		38.4359,
-			36.9898,
-			35.6536,
-			34.8709,
-			36.0742,
-			36.4627,
-			37.0404
+	38.0804 ,
+	37.0688 ,
+	31.0471 ,
+	37.8161 ,
+	11.7546 ,
+	29.7091 ,
+	33.4733
 	};
 	
 	for (int i = 0; i < 7; i++)
@@ -142,18 +164,24 @@ int main()
 		cams.push_back(t);
 		focuss.push_back(ert[i]);
 	}
-	fsl::InitFrame(7, imgs, maxx, maxy);
+	//std::ofstream fout(filepath + "voxel.txt");
+	//fout.clear();
+	//fsl::InitFrame(7, imgs, maxx, maxy);
 	fsl::Prepare();
+	//fsl::AttachOut(&fout);
 	//fsl::GetFirsCamPos();
 	//fsl::GetBestedBorder();
 	//fsl::GetNewCamPos();
 	//fsl::GetBorderDisp();
-	fsl::DebugInitCamPos(cams, focuss);
-	fsl::UpdateOreint();
-	fsl::GetFoot();
-	fsl::GetFirstVoxel();
+	//fsl::DebugInitCamPos(cams, focuss);
+	//fsl::UpdateOreint();
+	//fsl::GetFoot();
+	//fsl::GetFirstVoxel();
 	//fsl::BestTop();
-	//fsl::InitEtalon(male,maleS,female,femaleS);
-	//fsl::BestStopa();
+	//fsl::Out();
+	std::ifstream fin(filepath + "voxel.txt");
+	fsl::DebugInitVoxel(&fin);
+	fsl::InitEtalon(male,maleS,female,femaleS);
+	fsl::BestStopa();
 	system("pause");
 };

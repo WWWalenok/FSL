@@ -73,7 +73,7 @@ namespace fsl
 
 	Vector2 Vector2::operator +(Vector2 a) { return Vector2(a.x + x, a.y + y); }
 
-	Vector2 Vector2::operator -(Vector2 a) { return Vector2(a.x - x, a.y - y); }
+	Vector2 Vector2::operator -(Vector2 a) { return Vector2(-a.x + x, -a.y + y); }
 
 	Vector2 Vector2::operator *(float a) { return Vector2(x * a, y * a); }
 

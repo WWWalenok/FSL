@@ -20,11 +20,11 @@
 
 #define _UpdateOreintDebug
 
-#define GetFootDebug
+#define _GetFootDebug
 
-#define GetFirstVoxelDebug
+#define _GetFirstVoxelDebug
 
-#define BestTopDebug
+#define _BestTopDebug
 
 #define BestStopaDebug
 
@@ -63,9 +63,9 @@ namespace fsl
 #pragma region Macross
 	float sint[UINT16_MAX]{ -1000 };
 #define SIN_UP 10430.378350470452724949566316381
-#define TO_COS 0x4000ui16
+#define TO_COS 0x4000
 #define t_sin(x) ((x > 0) ? sint[(uint16_t)((double)x * SIN_UP)] : -sint[(uint16_t)((double)-x * SIN_UP)])
-#define t_cos(x) ((x > 0) ? sint[(uint16_t)((double)x * SIN_UP - TO_COS)] : sint[(uint16_t)((double)-x * SIN_UP + TO_COS)])
+#define t_cos(x) ((x > 0) ? sint[(uint16_t)((double)x * SIN_UP + TO_COS)] : sint[(uint16_t)((double)-x * SIN_UP + TO_COS)])
 
 #define ToCam(point, cam0, cam1, cam2, cam3, f, K)\
 {\
@@ -100,6 +100,9 @@ namespace fsl
 	Vector.y *= conv.f;\
 	Vector.z *= conv.f;}\
 
+#define inrange(_min, x, _max) ((x >= _min && x <= _max) ? x : ((x < _min) ? _min : _max))
+
+#define ckl(x, _max) ((x >= _max) ? x - _max : x)
 
 #pragma endregion
 
@@ -109,7 +112,7 @@ namespace fsl
 #define USGetVoxel(x,y,z) voxelbase[x * VoxelY * VoxelZ + y * VoxelZ + z]
 #pragma endregion
 
-	int framecount, immaxX, immaxY, *usedCamera, *oreint;
+	int framecount = 0, immaxX = 0, immaxY = 0, *usedCamera, *oreint;
 
 #pragma region Frames
 	std::vector<unsigned char**> imgs, blurred, counter;
@@ -143,8 +146,9 @@ namespace fsl
 
 	uch **debugout = nullptr;
 
-	std::ostream *sout;
+	std::ofstream *sout;
 
+	float footx, footy, footfi;
 #pragma endregion
 
 #pragma region Support function
@@ -266,16 +270,16 @@ namespace fsl
 					f = (random > 0.7) ? ba : G61 + random * (G62 - G61);
 					a = (random > 0.7) ? bf : G71 + random * (G72 - G71);
 					GetCamBasis(cam, s[0], s[1], a);
-						/*cam[0] = s[0];
-						cam[3] = s[0] - s[1];
-						cam[3].SetLenght(1);
-						cam[2] = cam[3] / Vector3(0, 0, 1);
-						cam[2].SetLenght(1);
-						cam[1] = cam[3] / cam[2];
-						cam[2] = cam[2] + cam[1] * a;
-						cam[2].SetLenght(1);
-						cam[1] = cam[3] / cam[2];
-						cam[1].SetLenght(1);*/
+					/*cam[0] = s[0];
+					cam[3] = s[0] - s[1];
+					cam[3].SetLenght(1);
+					cam[2] = cam[3] / Vector3(0, 0, 1);
+					cam[2].SetLenght(1);
+					cam[1] = cam[3] / cam[2];
+					cam[2] = cam[2] + cam[1] * a;
+					cam[2].SetLenght(1);
+					cam[1] = cam[3] / cam[2];
+					cam[1].SetLenght(1);*/
 					list[0] = Vector3(148.5, 105, devia[4]);
 					list[1] = Vector3(-148.5, 105, devia[5]);
 					list[2] = Vector3(-148.5, -105, devia[6]);
@@ -614,16 +618,16 @@ namespace fsl
 		}
 		AO.z = 0; BO.z = 0; CO.z = 0; DO.z = 0;
 		Vector3 BA, BB, BC, BD;
-		double bx1 = 0, by1 = 0, bx2 = 0, by2 = 0, bx3 = 0, by3 = 0, bx4 = 0, by4 = 0, Kri = 1e10, dr = 2 * K; int counter = 0;
-		for (int l = 0; l < 5; l++)
+		double bx1 = 0, by1 = 0, bx2 = 0, by2 = 0, bx3 = 0, by3 = 0, bx4 = 0, by4 = 0, Kri = 1e10, dr = 1 * K; int counter = 0;
+		for (int l = 0; l < 10; l++)
 		{
 			double te = 1e10, tx1 = 0, ty1 = 0, tx2 = 0, ty2 = 0, tx3 = 0, ty3 = 0, tx4 = 0, ty4 = 0;
-			for (double x1 = -1; x1 <= 1; x1++)
-				for (double y1 = -1; y1 <= 1; y1++)
+			for (double x1 = -0; x1 <= 0; x1++)
+				for (double y1 = -0; y1 <= 0; y1++)
 					for (double x2 = -1; x2 <= 1; x2++)
 						for (double y2 = -1; y2 <= 1; y2++)
-							for (double x3 = -1; x3 <= 1; x3++)
-								for (double y3 = -1; y3 <= 1; y3++)
+							for (double x3 = -0; x3 <= 0; x3++)
+								for (double y3 = -0; y3 <= 0; y3++)
 									for (double x4 = -1; x4 <= 1; x4++)
 										for (double y4 = -1; y4 <= 1; y4++)
 										{
@@ -649,6 +653,9 @@ namespace fsl
 											{
 												e = d2;
 											}
+											e = abs(e);
+											if (lamda < 20) e *= 1 + (-lamda + 20);
+											if (lamda > 50) e *= 1 + (lamda - 50);
 											if (e < te)
 											{
 												te = e;
@@ -790,7 +797,7 @@ namespace fsl
 			float G42 = 200;
 			float G51 = -200;
 			float G52 = 200;
-			float G61 = 5;
+			float G61 = 20;
 			float G62 = 40;
 			float G71 = (-180 - 35) / 180.0*PI;
 			float G72 = (-180 + 35) / 180.0*PI;
@@ -808,7 +815,7 @@ namespace fsl
 			float DiapzK = 200 * r;  float StepzK = 320 * q;
 			float DiapxL = 100 * r;  float StepxL = 150 * q;
 			float DiapyL = 100 * r;  float StepyL = 150 * q;
-			float Diapzum = 20 * r; float Stepzum = 20 * q;
+			float Diapzum = 5 * r; float Stepzum = 5 * q;
 			float DiapfiK = PI * 0.5*r; float StepfiK = PI * 0.7*q;
 			Vector3 s[2], cam[4], list[4], bcam[4], tcam[4];
 			// Если переобрабатываем после распознавания загиба листа делаем следующее
@@ -828,7 +835,7 @@ namespace fsl
 				cam[2].SetLenght(1);
 				cam[1] = cam[3] / cam[2]; cam[1].SetLenght(1);
 				float c1 = cam[1] * cams[u][2], c2 = cam[2] * cams[u][2], t1 = 2 * ((c1) * (c2)) / (1 - (c1) * (c1)), t2 = (1 - (c2) * (c2)) / (1 - (c1) * (c1));
-				ba = c1*c2;
+				ba = c1 * c2;
 				//ba = sqrt(1 - ba * ba) / -ba;
 				GetCamBasis(cam, tcam[0], tcam[1], ba);
 				/*
@@ -1160,7 +1167,7 @@ namespace fsl
 			*/
 
 			zumb = focuss[u];
-			Kritb = 1e10;
+			//Kritb = 1e10;
 #ifdef DebugConsole
 			{
 				std::cout << 0 << ' ' << Kritb << ' ';
@@ -1444,8 +1451,8 @@ namespace fsl
 				for (int y = 0; y < immaxY; y++)
 				{
 					d2.at<uch>(x, y) = blurred[u]USGetI(x, y);
-		}
-	}
+				}
+			}
 			d3 = d2.clone();
 #endif // UpdateOreintDebug
 
@@ -1607,7 +1614,7 @@ namespace fsl
 				cv::waitKey(1);
 #endif // UpdateOreintDebug
 
-				}
+			}
 			if (u != 3);
 			else
 			{
@@ -1657,7 +1664,7 @@ namespace fsl
 			cv::waitKey(1);
 #endif // UpdateOreintDebug
 
-			}
+		}
 
 #ifdef DebugConsole
 		for (int u = 0; u < framecount; u++)std::cout << cams[u][0].x << ' ' << cams[u][0].y << std::endl;
@@ -1674,7 +1681,7 @@ namespace fsl
 				if (x >= 0 && x < 1000 && y >= 0 && y < 1000) Campos.at<uch>(x, y) = 255;
 			}
 
-			}
+		}
 		cv::imshow("Campos", Campos);
 
 		cv::waitKey(1);
@@ -1688,10 +1695,10 @@ namespace fsl
 			for (int e = 0; e < 4; e++)
 			{
 				std::cout << "Vector3(" << cams[u][e].x << ", " << cams[u][e].y << ", " << cams[u][e].z << ")";
-				if (e < 3) std::cout << ", ";
+				if (e < 3) std::cout << "," << std::endl;
 			}
 			if (u < framecount - 1)std::cout << " }," << std::endl;
-			else std::cout << "}" << std::endl;
+			else std::cout << "}" << std::endl << "	";
 		}
 		std::cout << " }" << std::endl;
 		std::cout << "{" << std::endl;
@@ -1760,7 +1767,7 @@ namespace fsl
 						}
 					}
 				}
-	}
+			}
 			cv::imshow("d4", d1);
 			cv::waitKey(1);
 
@@ -1840,12 +1847,12 @@ namespace fsl
 #ifdef GetBestedBorderDebug
 									d1.at<uch>((int)P.x, (int)P.y) = (t > 255 / 2) ? 0 : 255;
 #endif
-							}
+								}
 								else
 								{
 									buff[x][pointsDeep] = 1;
 								}
-						}
+							}
 						}
 						Krit = 0; Krite = 0;
 						int q = 0;
@@ -1883,14 +1890,14 @@ namespace fsl
 							cv::imshow("d1", d1);
 							cv::waitKey(1);
 #endif
+						}
 					}
-				}
 					if (KritB > KritBB)
 					{
 						KritBB = KritB;
 						k1bb = k1b; k2bb = k2b;
 					}
-			}
+				}
 				A->x = D->x + (A->x - D->x) * k1bb;
 				A->y = D->y + (A->y - D->y) * k1bb;
 				B->x = C->x + (B->x - C->x) * k2bb;
@@ -2162,14 +2169,14 @@ namespace fsl
 						}
 					}
 				}
-		}
+			}
 
 			cv::imshow("dis", dis);
 			cv::waitKey(100);
 #endif // M1
 
+		}
 	}
-					}
 
 	void GetFoot()
 	{
@@ -2192,7 +2199,7 @@ namespace fsl
 				for (int y = 0; y < immaxY; y++)
 				{
 					d1.at<uch>(x, y) = blurred[u]USGetI(x, y);
-	}
+				}
 			}
 
 #endif // GetFootDebug
@@ -2283,7 +2290,7 @@ namespace fsl
 				for (int x = -1; x < 2; x++)for (int y = -1; y < 2; y++)
 				{
 					d2.at<uch>(max_f(min_f(points[i].loc.x + x, immaxX - 1.0), 0.0), max_f(min_f(points[i].loc.y + y, immaxY - 1.0), 0.0)) = (d1.at<uch>(max_f(min_f(points[i].loc.x, immaxX - 1.0), 0.0), max_f(min_f(points[i].loc.y, immaxY - 1.0), 0.0)) > 128) ? 0 : 255;
-			}
+				}
 			}
 			cv::imshow("GetFootDebug", d2);
 			cv::waitKey(1);
@@ -2308,38 +2315,42 @@ namespace fsl
 				for (int i = 1; i < 200; i++) { points[i].a.x = 0; points[i].a.y = 0; }
 				float k = 0, fi = 0, r1, r2, r3, r4;
 				bool isCorner;
-				for (int i_ = 200 - 2, i0 = 200 - 1, i1 = 0, i2 = 1, i3 = 2; i1 < 200; i1++, i2 = (i2 == 200 - 1) ? 0 : i2 + 1, i0 = (i0 == 200 - 1) ? 0 : i0 + 1, i_ = (i_ == 200 - 1) ? 0 : i_ + 1, i3 = (i3 == 200 - 1) ? 0 : i3 + 1)
+				for (int i_2 = 200 - 2, i_1 = 200 - 1, i0 = 0, i1 = 1, i2 = 2, j1 = 200 - 20, j2 = 200 - 10, j3 = 10, j4 = 20; i0 < 200; i0++, i_2 = ckl(i_2 + 1, 200), i_1 = ckl(i_1 + 1, 200), i1 = ckl(i1 + 1, 200), i2 = ckl(i2 + 1, 200), j1 = ckl(j1 + 1, 200), j2 = ckl(j2 + 1, 200), j3 = ckl(j3 + 1, 200), j4 = ckl(j4 + 1, 200))
 				{
-					M = (points[i0].loc + points[i2].loc) * 0.5;
-					X = points[i1].loc - M;
+					M = (points[i_1].loc + points[i1].loc) * 0.5;
+					X = points[i0].loc - M;
 					if (X.x != 0 && X.y != 0) X.SetLenght(1);
-					DinV.x = (points[i0].v.x + points[i2].v.x - points[i1].v.x * 2.0);
-					DinV.y = (points[i0].v.y + points[i2].v.y - points[i1].v.y * 2.0);
+					DinV.x = (points[i_1].v.x + points[i1].v.x - points[i0].v.x * 2.0);
+					DinV.y = (points[i_1].v.y + points[i1].v.y - points[i0].v.y * 2.0);
 					for (int i = -3; i < 4; i++)
 					{
-						V1 = points[i1].loc + X * ots[abs(i)] * ((i > 0) ? 1 : -1);
+						V1 = points[i0].loc + X * ots[abs(i)] * ((i > 0) ? 1 : -1);
 						buff[i + 3] = imgs[u]GetI((int)V1.x, (int)V1.y);
 					}
-					if (((points[i2].loc.x - points[i0].loc.x)*(points[i1].loc.y - points[i0].loc.y) - (points[i2].loc.y - points[i0].loc.y)*(points[i1].loc.x - points[i0].loc.x)) > 0) k = -1; else k = 1;
-					isCorner = false; if (time < mtime / 8) for (int i = 0; i < 4; i++) if (abs(lineK[i][0] * points[i1].loc.x + lineK[i][1] * points[i1].loc.y + lineK[i][2]) < 6) isCorner = true;
+					if (((points[i1].loc.x - points[i_1].loc.x)*(points[i0].loc.y - points[i_1].loc.y) - (points[i1].loc.y - points[i_1].loc.y)*(points[i0].loc.x - points[i_1].loc.x)) > 0) k = -1; else k = 1;
+					isCorner = false; if (time < mtime / 8) for (int i = 0; i < 4; i++) if (abs(lineK[i][0] * points[i0].loc.x + lineK[i][1] * points[i0].loc.y + lineK[i][2]) < 6) isCorner = true;
 					if (!isCorner)
 						fi = g * (0.6 * (buff[2] - 2 * buff[3] + buff[4]) + 0.25 * (buff[1] - 2 * buff[3] + buff[5]) + 0.15 * (buff[0] - 2 * buff[3] + buff[6]))*k;
 					if (abs(buff[0] - buff[4]) + abs(buff[1] - buff[5]) + abs(buff[0] - buff[6]) < 40 * 3) if (buff[1] < 40 && buff[5] < 40) fi += 1500 * k;
-					points[i1].a = X * fi + DinV * 5;
-					V1 = points[i1].loc; V1.x -= Ks32[u].x; V1.y -= Ks32[u].y; r3 = V1.GetLenght();
-					V2 = points[i1].loc; V2.x -= Ks51[u].x; V2.y -= Ks51[u].y; r4 = V2.GetLenght();
+					points[i0].a = X * fi + DinV * 5;
+					V1 = points[i0].loc; V1.x -= Ks32[u].x; V1.y -= Ks32[u].y; r3 = V1.GetLenght();
+					V2 = points[i0].loc; V2.x -= Ks51[u].x; V2.y -= Ks51[u].y; r4 = V2.GetLenght();
 					if (r3 > 7 + (mtime - time) / mtime * 10) { V1.x = 0; V1.y = 0; }
 					else { V1.x = V1.x / r3 * 30000; V1.y = V1.y / r3 * 30000; }
 					if (r4 > 7 + (mtime - time) / mtime * 10) { V2.x = 0; V2.y = 0; }
 					else { V2.x = V2.x / r4 * 30000; V2.y = V2.y / r4 * 30000; }
-					R1 = (points[i0].loc - points[i1].loc); r1 = R1.GetLenght() + 1e-20;
-					R2 = (points[i2].loc - points[i1].loc); r2 = R2.GetLenght() + 1e-20;
-					R3 = (points[i_].loc - points[i1].loc); r3 = R3.GetLenght() + 1e-20;
-					R4 = (points[i3].loc - points[i1].loc); r4 = R4.GetLenght() + 1e-20;
+					R1 = (points[i_1].loc - points[i0].loc); r1 = R1.GetLenght() + 1e-20;
+					R2 = (points[i1].loc - points[i0].loc); r2 = R2.GetLenght() + 1e-20;
+					//R3 = (points[i_2].loc - points[i0].loc); r3 = R3.GetLenght() + 1e-20;
+					//R4 = (points[i2].loc - points[i0].loc); r4 = R4.GetLenght() + 1e-20;
+					R4 = (points[j1].loc - points[i0].loc); R4 = R4 / (R4.x * R4.x + R4.y * R4.y) * g;
+					R3 = (points[j2].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y) * g;
+					R3 = (points[j3].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y) * g;
+					R3 = (points[j4].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y) * g;
 					//points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2 + R3.x * (rmid * 2 - r3) / r3 * 0.01 + R4.x * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
 					//points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2 + R3.y * (rmid * 2 - r3) / r3 * 0.01 + R4.y * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
-					points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
-					points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
+					points[i0].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i0].v.x + V1.x + V2.x + R4.x;
+					points[i0].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i0].v.y + V1.y + V2.y + R4.y;
 
 
 				}
@@ -2361,10 +2372,10 @@ namespace fsl
 							_x = (points[i].loc.x + x < 1) ? 1 : ((points[i].loc.x + x > immaxX - 2) ? immaxX - 2 : points[i].loc.x + x);
 							_y = (points[i].loc.y + y < 1) ? 1 : ((points[i].loc.y + y > immaxY - 2) ? immaxY - 2 : points[i].loc.y + y);
 							d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
-				}
+						}
 					cv::imshow("GetFootDebug", d2);
 					cv::waitKey(1);
-			}
+				}
 #endif // GetFootDebug
 			}
 #ifdef DebugConsole
@@ -2388,12 +2399,12 @@ namespace fsl
 					_x = (points[i].loc.x + x < 1) ? 1 : ((points[i].loc.x + x > immaxX - 2) ? immaxX - 2 : points[i].loc.x + x);
 					_y = (points[i].loc.y + y < 1) ? 1 : ((points[i].loc.y + y > immaxY - 2) ? immaxY - 2 : points[i].loc.y + y);
 					d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
-			}
+				}
 			cv::imshow("GetFootDebug", d2);
 			cv::waitKey(1);
 #endif // GetFootDebug
 			float rad[61][3];
-			for (int i0 = 400 - 1, i1 = 0, i2 = 1; i1 < 400; i1++, i2 = (i2 == 400 - 1) ? 0 : i2 + 1, i0 = (i0 == 400 - 1) ? 0 : i0 + 1)
+			for (int i0 = 400 - 1, i1 = 0, i2 = 1; i1 < 0; i1++, i2 = (i2 == 400 - 1) ? 0 : i2 + 1, i0 = (i0 == 400 - 1) ? 0 : i0 + 1)
 			{
 				bool isina4 = true;
 				for (int i = 0; i < 4; i++)
@@ -2479,7 +2490,7 @@ namespace fsl
 					_x = (points[i].loc.x + x < 1) ? 1 : ((points[i].loc.x + x > immaxX - 2) ? immaxX - 2 : points[i].loc.x + x);
 					_y = (points[i].loc.y + y < 1) ? 1 : ((points[i].loc.y + y > immaxY - 2) ? immaxY - 2 : points[i].loc.y + y);
 					d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
-			}
+				}
 			cv::imshow("GetFootDebug", d2);
 			cv::waitKey(1);
 #endif // GetFootDebug
@@ -2539,7 +2550,7 @@ namespace fsl
 						if (counter[u][int(V1.x)][int(V1.y)] < 2)
 							counter[u][int(V1.x)][int(V1.y)] = 1;
 #endif // GetFootDebug
-					}
+				}
 				if (l < 2) continue;
 				if (isin) V2 = V2 * 10;
 				else V2 = V2 * -10;
@@ -2655,8 +2666,8 @@ namespace fsl
 			}
 			fout.close();
 #endif // SaveBackUp
-			}
-			}
+		}
+	}
 
 #pragma endregion
 
@@ -2804,8 +2815,8 @@ namespace fsl
 			{
 
 				if (abs(_j) == 1)  r = 2.5;
-				if (abs(_j) == 2)  r = 5.5;
-				if (abs(_j) == 3)  r = 8.5;
+				if (abs(_j) == 2)  r = 6.5;
+				if (abs(_j) == 3)  r = 10;
 				if (_j != 0)
 				{
 					T[i1][j].x = xA + xB / fi * r*_j*(-q / abs(_j*q));
@@ -2826,7 +2837,7 @@ namespace fsl
 		int *oreinVar = new int[varcount];
 		for (int u = 0; u < varcount; u++)			// Поиск лучшего
 		{
-			
+
 			int size = 0;
 			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) USGetVoxel(x, y, u) = 1;
 			for (int k = 0; k < framecount; k++) if (variant[u][k] == 1)
@@ -2842,40 +2853,41 @@ namespace fsl
 						if (counter[k]GetI((int)P.x, (int)P.y) > 0)
 							istrue = true;
 					}
-					if(!istrue)
-					for (int i = 0; i < bsize; i++)for (int j = 0; j < bsize; j++)
-					{
-						GetVoxel(x + i, y + j, u) = 0;
-					}
+					if (!istrue)
+						for (int i = 0; i < bsize; i++)for (int j = 0; j < bsize; j++)
+						{
+							GetVoxel(x + i, y + j, u)--;
+						}
 					else
-					{
-						size += boost * boost;
-					}
+						for (int i = 0; i < bsize; i++)for (int j = 0; j < bsize; j++)
+						{
+							size++;
+						}
 				}
-				#ifdef GetFirstVoxelDebug
+#ifdef GetFirstVoxelDebug
 				for (int x = 0; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, u) > 0) VoxelL.at<uch>(x, y) = 255; else VoxelL.at<uch>(x, y) = 0;
 				cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
-				cv::waitKey();
-				#endif // GetFirstVoxelDebug
+				cv::waitKey(1);
+#endif // GetFirstVoxelDebug
 			}
 
 #ifdef GetFirstVoxelDebug
 			for (int x = 0; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, u) == 1) VoxelL.at<uch>(x, y) = 255; else VoxelL.at<uch>(x, y) = 0;
 			cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
-			cv::waitKey();
+			cv::waitKey(1);
 #endif // GetFirstVoxelDebug
 
 			KritsVar[u] = -1e20;
-			int MaxE = 500;
+			int MaxE = 200;
 			for (int E = 0; E < MaxE; E++)
 			{
 				float KritB = -1e20;
-				float dX0 = -40, dX1 = 40, dY0 = -25, dY1 = 25, dS0 = 0.6, dS1 = 1.6, dYS0 = 0.6, dYS1 = 1.6, dFI0 = -PI / 9.0, dFI1 = PI / 9.0;
+				float dX0 = -40, dX1 = 40, dY0 = -25, dY1 = 25, dS0 = 0.6, dS1 = 2, dYS0 = 0.6, dYS1 = 1.6, dFI0 = -PI / 9.0, dFI1 = PI / 9.0;
 				float dX, dY, dS, dYS, dFI;
 				float dXb, dYb, dSb, dYSb, dFIb;
 				float tx, ty, t, si, co;
 				int ore = 0;
-				for (int I = 0; I < 400; I++)
+				for (int I = 0; I < 350; I++)
 				{
 					if (I > 1)
 					{
@@ -2884,21 +2896,30 @@ namespace fsl
 						dS = dS0 + random * (dS1 - dS0);
 						dYS = dYS0 + random * (dYS1 - dYS0);
 						dFI = dFI0 + random * (dFI1 - dFI0);
+
+						if (I < 40)
+							dS = 1.0;
+						if (I < 80)
+							dYS = 1.0;
+						if (I < 120)
+							dFI = 0;
+
+
 						if ((I) % 10 == 0)
 						{
-							if (abs(dXb - (dX0 + dX1) * 0.5) / abs(dX0 - dX1) > 0.05) if (dXb * 2 < dX0 + dX1) dX1 = dX0 + 0.9 * (dX1 - dX0); else dX0 = dX0 + 0.9 * (dX1 - dX0);
-							if (abs(dYb - (dY0 + dY1) * 0.5) / abs(dY0 - dY1) > 0.05) if (dYb * 2 < dY0 + dY1) dY1 = dY0 + 0.9 * (dY1 - dY0); else dY0 = dY0 + 0.9 * (dY1 - dY0);
-							if (abs(dSb - (dS0 + dS1) * 0.5) / abs(dS0 - dS1) > 0.05) if (dSb * 2 < dS0 + dS1) dS1 = dS0 + 0.9 * (dS1 - dS0); else dS0 = dS0 + 0.9 * (dS1 - dS0);
-							if (abs(dYSb - (dYS0 + dYS1) * 0.5) / abs(dYS0 - dYS1) > 0.05) if (dYSb * 2 < dYS0 + dYS1) dYS1 = dYS0 + 0.9 * (dYS1 - dYS0); else dYS0 = dYS0 + 0.9 * (dYS1 - dYS0);
-							if (abs(dFIb - (dFI0 + dFI1) * 0.5) / abs(dFI0 - dFI1) > 0.05) if (dFIb * 2 < dFI0 + dFI1) dFI1 = dFI0 + 0.9 * (dFI1 - dFI0); else dFI0 = dFI0 + 0.9 * (dFI1 - dFI0);
+							if (abs(dXb - (dX0 + dX1) * 0.5) / abs(dX0 - dX1) > 0.05) if (dXb * 2 < dX0 + dX1) dX1 = dX0 + 0.98 * (dX1 - dX0); else dX0 = dX0 + 0.98 * (dX1 - dX0);
+							if (abs(dYb - (dY0 + dY1) * 0.5) / abs(dY0 - dY1) > 0.05) if (dYb * 2 < dY0 + dY1) dY1 = dY0 + 0.98 * (dY1 - dY0); else dY0 = dY0 + 0.98 * (dY1 - dY0);
+							if (abs(dSb - (dS0 + dS1) * 0.5) / abs(dS0 - dS1) > 0.05) if (dSb * 2 < dS0 + dS1) dS1 = dS0 + 0.98 * (dS1 - dS0); else dS0 = dS0 + 0.98 * (dS1 - dS0);
+							if (abs(dYSb - (dYS0 + dYS1) * 0.5) / abs(dYS0 - dYS1) > 0.05) if (dYSb * 2 < dYS0 + dYS1) dYS1 = dYS0 + 0.98 * (dYS1 - dYS0); else dYS0 = dYS0 + 0.98 * (dYS1 - dYS0);
+							if (abs(dFIb - (dFI0 + dFI1) * 0.5) / abs(dFI0 - dFI1) > 0.05) if (dFIb * 2 < dFI0 + dFI1) dFI1 = dFI0 + 0.98 * (dFI1 - dFI0); else dFI0 = dFI0 + 0.98 * (dFI1 - dFI0);
 						}
 					}
 					else
 					{
 						dX = 0;
 						dY = 0;
-						dS = 1;
-						dYS = 1;
+						dS = 1.0;
+						dYS = 1.0;
 						dFI = 0;
 					}
 
@@ -2909,18 +2930,20 @@ namespace fsl
 
 					for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
 					{
+						float w = 1;
+						//if (i < 3 || i >= 32 || (i > 15 && i < 21)) w =4;
+						//w = 4 * w / (3 + abs(_j));
 						tx = T[i][j].x * dS;
-						ty = T[i][j].y * dS * dYS * ((E < MaxE / 2) ? 1 : -1);
+						ty = T[i][j].y * dS * dYS * ((E % 2 == 0) ? 1 : -1);
 						t = tx;
 						tx = dX + t * co - ty * si + VoxelX / 2.0;
 						ty = dY + t * si + ty * co + VoxelY / 2.0;
 						if (tx >= 0 && tx <= VoxelX - 1 && ty >= 0 && ty <= VoxelY - 1)
 						{
-							t = GetVoxel((int)tx, (int)ty, u);
-							Kr += (t ? 1 : 0) * _j / (abs(_j));
+							Kr += ((GetVoxel((int)tx, (int)ty, u) > 0) ? w : 0) * ((_j > 0) ? 1 : -1);
 						}
 					}
-					t = 4600 * dS * dS * dYS;
+					t = 4600 * dS * dS * dYS * 4;
 					t = 1 - (2 * abs(t - size) / (t + size)); t = t * t*t*t;
 					Kr *= t;
 
@@ -2932,7 +2955,30 @@ namespace fsl
 						dSb = dS;
 						dYSb = dYS;
 						dFIb = dFI;
-						ore = (E < 30) ? 1 : -1;
+						ore = ((E % 2 == 0) ? 1 : -1);
+
+#ifdef GetFirstVoxelDebug
+						{
+							for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)VoxelL.at<uch>(x, y) = (USGetVoxel(x, y, u) > 0) ? 75 : 0;
+							float si = t_sin(dFIb);
+							float co = t_cos(dFIb);
+							float tx, ty, t;
+							for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++)
+							{
+								tx = T[i][j].x * dSb;
+								ty = T[i][j].y * dSb * dYSb * ore;
+								t = tx;
+								tx = dXb + t * co - ty * si + VoxelX / 2.0;
+								ty = dYb + t * si + ty * co + VoxelY / 2.0;
+								tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
+								ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
+								VoxelL.at<uch>(tx, ty) = 255 / (4 + _j);
+							}
+
+							//cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
+							//cv::waitKey();
+						}
+#endif // GetFirstVoxelDebug
 					}
 				}
 				if (KritB > KritsVar[u])
@@ -2951,7 +2997,7 @@ namespace fsl
 						float si = t_sin(dFIbb[u]);
 						float co = t_cos(dFIbb[u]);
 						float tx, ty, t;
-						for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
+						for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++)
 						{
 							tx = T[i][j].x * dSbb[u];
 							ty = T[i][j].y * dSbb[u] * dYSbb[u] * oreinVar[u];
@@ -2960,12 +3006,13 @@ namespace fsl
 							ty = dYbb[u] + t * si + ty * co + VoxelY / 2.0;
 							tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 							ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
-							VoxelL.at<uch>(tx, ty) = 255 / (1 + abs(_j) * 0.5);
+							VoxelL.at<uch>(tx, ty) = 255 / (4 + _j);
+							if (_j == 0) VoxelL.at<uch>(tx, ty) = 255 / (1 + i);
 						}
 
 						cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
 						cv::waitKey(1);
-				}
+					}
 #endif // GetFirstVoxelDebug
 
 				}
@@ -2978,7 +3025,7 @@ namespace fsl
 			float si = t_sin(dFIbb[best]);
 			float co = t_cos(dFIbb[best]);
 			float tx, ty, t;
-			for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
+			for (int i = 0; i < 35; i++) for (int j = 0, _j = -3; j < 7; j++, _j++)
 			{
 				tx = T[i][j].x * dSbb[best];
 				ty = T[i][j].y * dSbb[best] * dYSbb[best] * oreinVar[best];
@@ -2988,11 +3035,12 @@ namespace fsl
 				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
 				VoxelL.at<uch>(tx, ty) = 255 / (1 + abs(_j) * 0.5);
+				if (_j == 0) VoxelL.at<uch>(tx, ty) = 255 / (1 + i);
 			}
 
 			cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
 			cv::waitKey(1);
-			}
+		}
 #endif // GetFirstVoxelDebug
 		for (int i = 0; i < varcount; i++) KritsVar[i] *= ((i > 1 && i < framecount + 1) ? 0.94 : ((i == 1) ? 1 : 0.88)) * ((variant[i][0] == 0) ? 0.96 : 1)* ((variant[i][framecount - 1] == 0) ? 0.96 : 1) * ((variant[i][framecount / 2 + 1] == 0) ? 0.94 : 1);
 
@@ -3005,6 +3053,10 @@ namespace fsl
 #ifdef DebugConsole
 		std::cout << "SelectBestDone" << std::endl;
 #endif // DEBUG
+
+		footx = dXbb[best];
+		footy = dYbb[best];
+		footfi = dFIbb[best];
 
 		for (int k = 0; k < framecount; k++) if (variant[best][k] == 1)
 		{
@@ -3051,8 +3103,8 @@ namespace fsl
 							ToCam(base, cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K);
 							if (base.x >= 0 && base.x <= immaxX - 1 && base.y >= 0 && base.y <= immaxY - 1)
 								d2.at<uch>((int)base.x, (int)base.y + by) = 255;
-			}
-			}
+						}
+					}
 #endif // GetFirstVoxelDebug
 #ifdef DebugConsole
 				if (x * VoxelY * VoxelZ + y * VoxelZ + z + 3 > lastSay + dsay) { pc += 10; lastSay += dsay; std::cout << pc << '%' << std::endl; }
@@ -3087,7 +3139,7 @@ namespace fsl
 		//ClearVoxel();
 
 		usedCamera = new int[framecount]; for (int i = 0; i < framecount; i++) usedCamera[i] = variant[best][i];
-		}
+	}
 
 	void GetBestVoxel()
 	{
@@ -3140,6 +3192,20 @@ namespace fsl
 
 		Vector2 chablon[30][7];
 
+		uch sled[VoxelX][VoxelY];
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
+		{
+			for (int z = 0; z < 20; z++)
+			{
+				sled[x][y] = 0;
+				if (GetVoxel(x, y, z) > 0)
+				{
+					sled[x][y] = 1;
+					z = 21;
+				}
+			}
+
+		}
 		for (int n = 0; n < ch.size(); n++)			// поиск критериев
 		{
 
@@ -3161,28 +3227,51 @@ namespace fsl
 
 			for (int k = 0; k < 30; k++)
 			{
-				chablon[k][3].x = ch[n][k].x;
-				chablon[k][3].y = ch[n][k].y;
+				chablon[k][3].x = correct[n][k].x;
+				chablon[k][3].y = correct[n][k].y;
 			}
 
 			//for (int i0 = 30 - 1, i1 = 0, i2 = 1; i1 < 30; i1++, i2 = (i2 == 30 - 1) ? 0 : i2 + 1, i0 = (i0 == 30 - 1) ? 0 : i0 + 1)
 			for3(30)
 			{
-				Vector2 Y = chablon[i2][3] - chablon[i0][3]; Y.SetLenght(1);
-				float t = Y * chablon[i1][3];
-				Vector2 X(1, (t - Y.x) / Y.y);
-				X = Vector2(X.x - chablon[i1][3].x, X.y - chablon[i1][3].y);
-				X.SetLenght(1);
-				if (X * Y < 0) X = X * -1;
-				for (int i = -3, _i = 0; i <= 3; i++, _i++) if (i != 0)
-					chablon[i1][_i] = chablon[i1][3] + X * 2.0 * i;
+				//Vector2 Y = chablon[i2][3] - chablon[i0][3]; Y.SetLenght(1);
+				//float t = Y * chablon[i1][3];
+				//Vector2 X(1, (t - Y.x) / Y.y);
+				//X = Vector2(X.x - chablon[i1][3].x, X.y - chablon[i1][3].y);
+				//X.SetLenght(1);
+				//if (X * Y < 0) X = X * -1;
+				//for (int i = -3, _i = 0; i <= 3; i++, _i++) if (i != 0)
+				//	chablon[i1][_i] = chablon[i1][3] + X * 3.5 * i;
+
+				float xA = chablon[i1][3].x, yA = chablon[i1][3].y;
+				float xB = 1;
+				float yB = -(chablon[i2][3].x - chablon[i0][3].x) / (chablon[i2][3].y - chablon[i0][3].y + 1e-20);
+				float fi = sqrt(xB * xB + yB * yB);
+				float q = (chablon[i2][3].x - chablon[i0][3].x)*(yB)-(chablon[i2][3].y - chablon[i0][3].y)*(xB);
+				for (int j = 0, _j = -3; j < 7; j++, _j++)
+				{
+					float r = 0;
+					if (abs(_j) == 1)  r = 2.5;
+					if (abs(_j) == 2)  r = 6.5;
+					if (abs(_j) == 3)  r = 10;
+					if (_j != 0)
+					{
+						chablon[i1][j].x = xA + xB / fi * r*_j*(-q / abs(_j*q));
+						chablon[i1][j].y = yA + yB / fi * r*_j*(-q / abs(_j*q));
+					}
+					else
+					{
+						chablon[i1][j].x = xA;
+						chablon[i1][j].y = yA;
+					}
+				}
 			}
 #ifdef BestStopaDebug
 			{
 				float tx, ty;
 				for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
 				{
-					d1.at<uch>(x, y) = 0;
+					d1.at<uch>(x, y) = sled[x][y] * 10;
 				}
 				d2 = d1.clone();
 				for (int j = 0; j < 30; j++)
@@ -3194,12 +3283,13 @@ namespace fsl
 						if (ty < 0) ty = 0; if (ty > VoxelY - 1) ty = VoxelY - 1;
 						d2.at<uch>(tx, ty) = 255 / (1 + abs(i));
 					}
-			}
+				}
 				cv::imshow("BestStopaDebug", d2);
-				cv::waitKey();
-		}
+				cv::waitKey(1);
+			}
 #endif // BestStopaDebug
-			float G11 = -40, G12 = 40, G21 = -30, G22 = 30, G31 = -25 / 180 * PI, G32 = 25 / 180 * PI, G41 = 0.7, G42 = 1.3, Kritb = -1e20, xb, yb, fib, sb, r, co, si;
+			footx = 0; footy = 0;
+			float G11 = footx - 40, G12 = footx + 40, G21 = footy - 40, G22 = footy + 40, G31 = -25 / 180 * PI + PI, G32 = 25 / 180 * PI + PI, G41 = 0.6, G42 = 1.5, Kritb = -1e20, xb, yb, fib, sb, r, co, si;
 
 			Vector2 Cen;
 			Vector2 P;
@@ -3214,39 +3304,60 @@ namespace fsl
 			for (int E = 0; E < 100; E++)
 			{
 				float x, y, fi, s;
-				for (int I = 0; I < 120; I++)
+				for (int I = 0; I < 100; I++)
 				{
-					x = G11 + random * (G12 - G11);
-					y = G21 + random * (G22 - G21);
-					fi = G31 + random * (G32 - G31);
-					s = G41 + random * (G42 - G41);
+					if (I == 0)
+					{
+						x = footx;
+						y = footy;
+						fi = PI;
+						s = 1;
+					}
+					else
+					{
+						x = G11 + random * (G12 - G11);
+						y = G21 + random * (G22 - G21);
+						fi = G31 + random * (G32 - G31);
+						s = G41 + random * (G42 - G41);
+					}
 					P = Vector2(x, y);
 					co = t_cos(fi);
-					si = sqrt(1 - co * co);
+					si = t_sin(fi);
 					float Kr = 0;
+					float e = -1;
 					for (int i = 0; i < 30; i++)
 					{
-						for (int j = 0; j < 7; j++)
+						for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
 						{
 							used[i][j] = (chablon[i][j] - Cen) * s;
-							used[i][j] = Cen + P + Vector2(used[i][j].x * co - used[i][j].y * si, used[i][j].x * si + used[i][j].y * co);
-						}
-						for (int j1 = 1, j2 = -1; j1 < 4; j1++, j2--)
-						{
-							for (int z = 0; z < 20; z++)
+							float tx = used[i][j].x * co - used[i][j].y * si;
+							float ty = used[i][j].x * si + used[i][j].y * co;
+							used[i][j].x = Cen.x + P.x + tx + VoxelX / 2.0;
+							used[i][j].y = Cen.y + P.y + ty + VoxelY / 2.0;
+							//}
+							//for (int j1 = 4, j2 = 2; j1 < 7; j1++, j2--)
+							//{
+							//	if ((int)used[i][j1].x >= 0 && (int)used[i][j1].x < VoxelX && (int)used[i][j1].y >= 0 && (int)used[i][j1].y < VoxelY)
+							//	{
+							//		Kr += (sled[(int)used[i][j1].x][(int)used[i][j1].y] - sled[(int)used[i][j2].x][(int)used[i][j2].y]);
+							//	}
+							//}
+							//for (int j = 0, _j = -3; j < 7; j++, _j++) if (_j != 0)
+							//{
+							float w = 1 / (1 + abs(14.5 - i) * 0.2);
+							//float w = 1;
+							if ((int)used[i][j].x >= 0 && (int)used[i][j].x < VoxelX && (int)used[i][j].y >= 0 && (int)used[i][j].y < VoxelY)
 							{
-								temp = GetVoxel((int)used[i][j1].x, (int)used[i][j1].y, z);
-								if (temp > 0)
-								{
-									Kr += (temp - GetVoxel((int)used[i][j2].x, (int)used[i][j2].y, z)) * (1 + j1) * 0.25;
-									z = 21;
-								}
+								Kr += ((sled[(int)used[i][j].x][(int)used[i][j].y] != 0) ? w : 0) * ((_j > 0) ? 1 : -1) * e;
 							}
+							else
+								Kr--;
 						}
+
 					}
-					/*float e = 0;
-					if (oreint == 1) e = -1; else e = 1;
-					Kr = e * Kr;*/
+
+					//if (Orientation == 1) e = -1; else e = 1;
+					//Kr = e * Kr;
 					// Какого черта ?
 
 					if (Kr > Kritb)
@@ -3256,6 +3367,29 @@ namespace fsl
 						yb = y;
 						fib = fi;
 						sb = s;
+#ifdef BestStopaDebug
+						{
+							float tx, ty;
+							for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
+							{
+								d1.at<uch>(x, y) = sled[x][y] * 10;
+							}
+							d2 = d1.clone();
+							for (int j = 0; j < 30; j++)
+							{
+								float w = 1 / (1 + abs(14.5 - j) * 0.2);
+								for (int i = -3, _i = 0; i <= 3; i++, _i++)
+								{
+									tx = used[j][_i].x; ty = used[j][_i].y;
+									if (tx < 0) tx = 0; if (tx > VoxelX - 1) tx = VoxelX - 1;
+									if (ty < 0) ty = 0; if (ty > VoxelY - 1) ty = VoxelY - 1;
+									d2.at<uch>(tx, ty) = 255 * w;
+								}
+							}
+							cv::imshow("BestStopaDebug", d2);
+							cv::waitKey(1);
+						}
+#endif // BestStopaDebug
 					}
 				}
 				r = 0.97;
@@ -3269,11 +3403,13 @@ namespace fsl
 
 			Vector3 Cen3(Cen.x, Cen.y, 0), P3(xb, yb, 0);
 			co = t_cos(fib);
-			si = sqrt(1 - co * co);
+			si = t_sin(fib);
 			for (int i = 0; i < chsizes[n]; i++)
 			{
 				correct[n][i] = (correct[n][i] - Cen3) * sb;
-				correct[n][i] = Cen3 + P3 + Vector3(correct[n][i].x * co - correct[n][i].y * si, correct[n][i].x * si + correct[n][i].y * co, correct[n][i].z);
+				float tx = correct[n][i].x * co - correct[n][i].y * si;
+				float ty = correct[n][i].x * si + correct[n][i].y * co;
+				correct[n][i] = Cen3 + P3 + Vector3(tx, ty, correct[n][i].z);
 			}
 #ifdef BestStopaDebug
 			{
@@ -3295,12 +3431,12 @@ namespace fsl
 				{
 					tx = correct[n][j].x + VoxelX / 2.0; ty = correct[n][j].y + VoxelY / 2.0;
 					if (tx > 0 && ty > 0 && tx < VoxelX - 1 && ty < VoxelY - 1) d2.at<uch>(tx, ty) = 255;
-	}
+				}
 				cv::imshow("BestStopaDebug", d2);
-				cv::waitKey();
+				cv::waitKey(1);
 			}
 #endif // BestStopaDebug
-			float x0, x1, z0, z1;
+			float x0, x1, z0 = -1, z1 = -1;
 
 			int len[VoxelZ];
 
@@ -3321,7 +3457,7 @@ namespace fsl
 						z1 = (z > VoxelZ / 3.0) ? 0 : z * 1.5;
 					}
 				}
-				z0 = -1;
+				z0 = -1; z1 = -1;
 				for (int z = 0; z < VoxelZ; z++) if (len[z] > max * 0.7) { z0 = (z > VoxelZ / 3.0) ? 0 : z; break; }
 
 				float irad = 0, counteroflenght = 0;
@@ -3354,6 +3490,43 @@ namespace fsl
 			}
 		}
 
+
+#ifdef BestStopaDebug
+		{
+			float tx, ty;
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
+			{
+				for (int z = 0; z < 20; z++)
+				{
+					if (GetVoxel(x, y, z) > 0)
+					{
+						d1.at<uch>(x, y) = 50;
+						z = 21;
+					}
+				}
+
+			}
+
+
+			cv::Mat Fre(VoxelZ, VoxelX, 0);
+
+			for (int z = 0; z < VoxelZ; z++)for (int x = 0; x < VoxelX; x++)
+			{
+				{
+					if (GetVoxel(x, VoxelY / 2, z) > 0)
+					{
+						Fre.at<uch>(z, x) = 255;
+					}
+					else
+					{
+						Fre.at<uch>(z, x) = 0;
+					}
+				}
+			}
+
+		}
+#endif // BestStopaDebug
+
 		float maxkrit = kriteries[0], minkrit = kriteries[0];
 
 		for (int n = 1; n < ch.size(); n++)
@@ -3377,11 +3550,13 @@ namespace fsl
 
 		for (int n = 0; n < ch.size(); n++)
 			kriteries[n] *= 0.5;
+		int maxn0 = 0;
+		for (int n = 0; n < ch.size(); n++)
+			if (kriteries[n] > kriteries[maxn0]) maxn0 = n;
 		int maxn1 = 0;
 		maxkrit = 1e10;
-
 		for (int n = 0; n < ch.size(); n++)
-			if (kriteries[n] > kriteries[maxn1] && kriteries[n] < 0.5) maxn1 = n;
+			if (kriteries[n] > kriteries[maxn1] && kriteries[n] < kriteries[maxn0]) maxn1 = n;
 		int maxn2 = 0;
 		maxkrit = 1e10;
 		for (int n = 0; n < ch.size(); n++)
@@ -3389,6 +3564,7 @@ namespace fsl
 
 		for (int n = 0; n < ch.size(); n++)
 			if (kriteries[n] < kriteries[maxn2]) kriteries[n] = 0;
+		kriteries[maxn0] = 0.5;
 
 		kriteries[maxn1] = 0.3333;
 
@@ -3400,63 +3576,117 @@ namespace fsl
 
 		int stx = 150;
 
-		for (int i = VoxelX - 1, r = 0; i >= 0; i++, r = 0)
+		for (int x = VoxelX - 1, r = 0; x >= 0; x--, r = 0)
 		{
-			for (int j = 0; j < VoxelY; j++) for (int k = min_f(0.8 * VoxelZ, 140 * VoxelS); k < VoxelZ; k++) if (USGetVoxel(i, j, k) == 1) r = 1;
-			if (r == 1) { stx = i + 2; break; }
+			for (int y = 0; y < VoxelY; y++)
+				for (int z = min_f(0.8 * VoxelZ, 140 * VoxelS); z < VoxelZ; z++)
+					if (USGetVoxel(x, y, z) == 1)
+						r = 1;
+			if (r == 1)
+			{
+				stx = x + 2;
+				break;
+			}
 		}
 
-		for (int x = stx; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) for (int z = VoxelZ - 1; z <= 0; z--) if (USGetVoxel(x, y, z) > 0)
-		{
-			float TZ = 0;
-			for (int n = 0; n < ch.size(); n++) if (kriteries[n] > 1e-3)
-			{
-#define trpcount 3
-				int points[trpcount];
-				float rads[trpcount + 1], r, k = 0, w;
-				rads[0] = 0;
-				for (int h = 0; h < trpcount; h++)
+		for (int x = stx; x < VoxelX; x++)
+			for (int y = 0; y < VoxelY; y++)
+				for (int z = VoxelZ - 1; z >= 0; z--)
 				{
-					rads[h + 1] = 1e20;
-					for (int i = 0; i < chsizes[n]; i++)
+					uch t = GetVoxel(x, y, z);
+					if (t > 0)
 					{
-						r = (correct[n][i].x - x * VoxelS) * (correct[n][i].x - x * VoxelS) + (correct[n][i].y - y * VoxelS) * (correct[n][i].y - y * VoxelS) + (correct[n][i].z - z * VoxelS) * (correct[n][i].z - z * VoxelS);
-						if (r > rads[h] && r < rads[h + 1])
+						float TZ = 0;
+						for (int n = 0; n < ch.size(); n++) if (kriteries[n] > 1e-3)
 						{
-							rads[h + 1] = r;
-							points[h] = i;
+#define trpcount 3
+							int points[trpcount];
+							float rads[trpcount + 1], r, k = 0, w;
+							rads[0] = 0;
+							for (int h = 0; h < trpcount; h++)
+							{
+								rads[h + 1] = 1e20;
+								for (int i = 0; i < chsizes[n]; i++)
+								{
+									r = (correct[n][i].x - x * VoxelS) * (correct[n][i].x - x * VoxelS) + (correct[n][i].y - y * VoxelS) * (correct[n][i].y - y * VoxelS) + (correct[n][i].z - z * VoxelS) * (correct[n][i].z - z * VoxelS);
+									if (r > rads[h] && r < rads[h + 1])
+									{
+										rads[h + 1] = r;
+										points[h] = i;
+									}
+								}
+							}
+							r = 0;
+							for (int h = 0; h < trpcount; h++)
+							{
+								rads[h] = sqrt(rads[h + 1]);
+								w = 1 / (1 + rads[h]);
+								r += correct[n][points[h]].z * w;
+								k += w;
+							}
+#undef trpcount 
+							r /= k;
+							TZ += r / VoxelS * kriteries[n];
+						}
+
+						if (TZ > z)
+						{
+							for (int i = z; i < TZ + 1; i++)
+								GetVoxel(x, y, i) = 1;
+							
+						}
+						if (TZ < z)
+						{
+							for (int i = TZ + 1; i <= z; i++)
+								GetVoxel(x, y, i) = 0;
+							z = TZ + 2;
 						}
 					}
 				}
-				r = 0;
-				for (int h = 0; h < trpcount; h++)
-				{
-					rads[h] = sqrt(rads[h + 1]);
-					w = exp(-rads[h] / (150));
-					r += correct[n][points[h]].z * w;
-					k += w;
-				}
-#undef trpcount 
-				r /= k;
-				TZ += r / VoxelS * koof[n];
-			}
-
-			if (TZ > z)
-			{
-				for (int i = z; i < TZ + 1; i++)
-					GetVoxel(x, y, i) = 1;
-			}
-			if (TZ < z)
-			{
-				for (int i = TZ + 1; i <= z; i++)
-					GetVoxel(x, y, i) = 0;
-			}
-		}
 
 		for (int i = 0; i < ch.size(); i++)
 		{
 			delete[] correct[i];
 		}
+
+#ifdef BestStopaDebug
+		{
+			float tx, ty;
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)
+			{
+				for (int z = 0; z < 20; z++)
+				{
+					if (GetVoxel(x, y, z) > 0)
+					{
+						d1.at<uch>(x, y) = 50;
+						z = 21;
+					}
+				}
+
+			}
+
+
+			cv::Mat Fre(VoxelZ, VoxelX, 0);
+
+			for (int z = 0; z < VoxelZ; z++)for (int x = 0; x < VoxelX; x++)
+			{
+				{
+					if (GetVoxel(x, VoxelY / 2, z) > 0)
+					{
+						Fre.at<uch>(z, x) = 255;
+					}
+					else
+					{
+						Fre.at<uch>(z, x) = 0;
+					}
+				}
+			}
+			cv::imshow("BestStopaDebug", d1);
+			cv::imshow("Fre", Fre);
+			cv::waitKey();
+
+		}
+#endif // BestStopaDebug
 
 #ifdef DebugConsole
 		std::cout << "UpgradeEnd" << std::endl;
@@ -3519,7 +3749,7 @@ namespace fsl
 			base = Vector3(base * Cams[u][1] * r + 200 / 2, base * Cams[u][2] * r + 100 / 2, focus / KS);
 			if (base.x >= 0 && base.x <= 199 && base.y >= 0 && base.y <= 99)
 				base.z = 1;
-	}
+}
 
 #endif // BestTopDebug
 		float *ix = new float[NS] { -120.415, -118.223, -107.241, -92.491, -76.224, -59.869, -43.488, -27.181, -10.797, 5.474, 21.693, 37.937, 54.23, 70.581, 86.815, 102.924, 118.374, 126.633, 123.11, 114.115, 102.974, 89.941, 76.335, 61.995, 45.691, 29.353, 13.098, -3.187, -19.441, -35.626, -51.862, -68.153, -84.333, -99.562, -112.899 };
@@ -3607,7 +3837,7 @@ namespace fsl
 				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
 				VoxelL.at<uch>(tx, ty) = 255 / (2 + _j / 3.0);
-		}
+			}
 			cv::imshow("BestTopDebugVoxelLayer", VoxelL);
 			cv::waitKey();
 		}
@@ -3743,9 +3973,9 @@ namespace fsl
 							ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
 							VoxelL.at<uch>(tx, ty) = 255 / (1 + abs(_j) * 0.5);
 				}
-			}
+					}
 #endif // BestTopDebug
-		}
+				}
 			}
 			if (KritB > KritBB)
 			{
@@ -3758,7 +3988,7 @@ namespace fsl
 #endif // BestTopDebug
 			}
 
-		}
+			}
 #ifdef DebugConsole
 		std::cout << "ChoseBestEnd" << std::endl;
 #endif // DEBUG
@@ -4102,7 +4332,7 @@ namespace fsl
 				tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 				ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
 				Base2.at<uch>(tx, ty) = 100;
-				}
+			}
 
 			cv::imshow("BestTopDebugLayer", Base2);
 			cv::waitKey(1);
@@ -4425,9 +4655,9 @@ namespace fsl
 		fsl::debugout = debugout;
 	}
 
-	void AttacgOut(std::ostream straem)
+	void AttachOut(std::ofstream *straem)
 	{
-		sout = &straem;
+		sout = straem;
 	}
 
 	void Prepare()
@@ -4513,15 +4743,15 @@ namespace fsl
 			for (int y = 0; y < immaxY; y++)
 			{
 				d1.at<uch>(x, y) = blurred[0]USGetI(x, y);
-			}
 		}
+	}
 
 		cv::imshow("d2", d1);
 
 		cv::waitKey(1);
 
 #endif // M1
-				}
+}
 
 	void InitUserStat(bool male)
 	{
@@ -4553,8 +4783,8 @@ namespace fsl
 			for (int y = 0; y < immaxY; y++)
 			{
 				d1.at<uch>(x, y) = imgs[0]USGetI(x, y);
-			}
 		}
+	}
 
 		cv::imshow("d1", d1);
 
@@ -4568,23 +4798,24 @@ namespace fsl
 		cams = _cams;
 		focuss = _focuss;
 		Vector3 list[4];
-		for (int u= 0; u < 7; u++)
+		for (int u = 0; u < 7; u++)
 		{
 			list[0] = Vector3(148.5, 105, 0);
 			list[1] = Vector3(-148.5, 105, 0);
 			list[2] = Vector3(-148.5, -105, 0);
+			while (lists.size() <= u)
+			{
+				lists.push_back(new Vector3[4]);
+			}
 			list[3] = Vector3(148.5, -105, 0);
 			for (int i = 0; i < 4; i++)
 			{
 				ToCam(list[i], cams[u][0], cams[u][1], cams[u][2], cams[u][3], focuss[u], K);
-				while (lists.size() <= u)
-				{
-					lists.push_back(new Vector3[4]);
-				}
+
 				lists[u][i] = list[i];
 			}
 		}
-		
+
 	}
 
 	void InitEtalon(std::vector<Vector3*> _male, std::vector<int> _malesizes, std::vector<Vector3*> _female, std::vector<int> _femalesizes)
@@ -4595,15 +4826,50 @@ namespace fsl
 		femalesizes = _femalesizes;
 	}
 
+	void DebugInitVoxel(std::ifstream *fin)
+	{
+		std::string buff;
+		std::getline(*fin, buff);
+		int maxX = std::stoi(buff);
+		std::getline(*fin, buff);
+		int maxY = std::stoi(buff);
+		std::getline(*fin, buff);
+		int maxZ = std::stoi(buff);
+		char *temp = new char;
+		int dx = (VoxelX - maxX) / 2;
+		int dy = (VoxelY - maxY) / 2;
+		int dz = (VoxelZ - maxZ) / 2;
+		for (int x = (dx >= 0) ? 0 : dx; x < ((dx >= 0) ? VoxelX : VoxelX - dx); x++)
+		{
+			for (int y = (dy >= 0) ? 0 : dy; y < ((dy >= 0) ? VoxelY : VoxelY - dy); y++)
+			{
+				for (int z = (dz >= 0) ? 0 : dz; z < ((dz >= 0) ? VoxelZ : VoxelZ - dz); z++)
+				{
+					if (x >= dx && x < VoxelX - dx && y >= dy && y < VoxelY - dy && z >= dz && z < VoxelZ - dz)
+						fin->read(temp, 1);
+					else
+						*temp = '0';
+					if (x >= 0 && x < VoxelX && y >= 0 && y < VoxelY && z >= 0 && z < VoxelZ)
+						USGetVoxel(x, y, z) = (*temp == '0') ? 0 : 1;
+					if (x >= dx && x < VoxelX - dx && y >= dy && y < VoxelY - dy && z >= dz && z < VoxelZ - dz)
+						fin->read(temp, 1);
+				}
+			}
+		}
+
+	}
 #pragma endregion
 
 #pragma region Out
 
 	void Out()
 	{
+		*sout << VoxelX << std::endl;
+		*sout << VoxelY << std::endl;
+		*sout << VoxelZ << std::endl;
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++)
 		{
-			*sout << USGetVoxel(x, y, z) << uch(13) << uch(10);
+			*sout << (int)USGetVoxel(x, y, z) << std::endl;
 		}
 	}
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <thread>
 #include <cmath>
@@ -9,9 +10,9 @@ namespace fsl
 {
 
 #define PI 3.141592653589793
-#define VoxelX 360
-#define VoxelY 160
-#define VoxelZ 200
+#define VoxelX 330
+#define VoxelY 200
+#define VoxelZ 210
 #define VoxelS 1.0
 #define pointsDisp 16
 #define pointsDeep 3
@@ -169,6 +170,8 @@ namespace fsl
 
 	void Run();
 
+	void AttachOut(std::ofstream *straem);
+
 	void GetCamPos(int);
 
 	void GetFirsCamPos();
@@ -204,6 +207,7 @@ namespace fsl
 	void Podgonka();
 
 	void DebugInitCamPos(std::vector<Vector3*> _cams, std::vector<float> _focuss);
+	void DebugInitVoxel(std::ifstream *fin);
 }
 
 
