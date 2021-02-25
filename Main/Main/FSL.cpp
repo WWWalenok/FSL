@@ -3523,7 +3523,9 @@ namespace fsl
 					}
 				}
 			}
-
+			cv::imshow("BestStopaDebug2", d1);
+			cv::imshow("Fre", Fre);
+			cv::waitKey(1);
 		}
 #endif // BestStopaDebug
 
@@ -3591,35 +3593,46 @@ namespace fsl
 
 		for (int x = stx; x < VoxelX; x++)
 			for (int y = 0; y < VoxelY; y++)
-				for (int z = VoxelZ - 1; z >= 0; z--)
+			{
+				bool down = true;
+				for (int z = 100; z >= 0; z--)
 				{
 					uch t = GetVoxel(x, y, z);
 					if (t > 0)
 					{
 						float TZ = 0;
-						for (int n = 0; n < ch.size(); n++) if (kriteries[n] > 1e-3)
+						for (int n = 0; n < ch.size(); n++) if (kriteries[n] > 1e-2)
 						{
 #define trpcount 3
 							int points[trpcount];
 							float rads[trpcount + 1], r, k = 0, w;
-							rads[0] = 0;
+							rads[0] = 1e20;
 							for (int h = 0; h < trpcount; h++)
 							{
 								rads[h + 1] = 1e20;
-								for (int i = 0; i < chsizes[n]; i++)
-								{
-									r = (correct[n][i].x - x * VoxelS) * (correct[n][i].x - x * VoxelS) + (correct[n][i].y - y * VoxelS) * (correct[n][i].y - y * VoxelS) + (correct[n][i].z - z * VoxelS) * (correct[n][i].z - z * VoxelS);
-									if (r > rads[h] && r < rads[h + 1])
-									{
-										rads[h + 1] = r;
-										points[h] = i;
-									}
-								}
 							}
+							for (int i = 0; i < chsizes[n]; i++)
+							{
+								r = (correct[n][i].x - x * VoxelS) * (correct[n][i].x - x * VoxelS) + (correct[n][i].y - y * VoxelS) * (correct[n][i].y - y * VoxelS) + (correct[n][i].z - z * VoxelS) * (correct[n][i].z - z * VoxelS);
+								if (r < rads[trpcount - 1])
+									for(int h = 0; h < trpcount; h++)
+										if (r < rads[h])
+										{
+											for (int q = trpcount - 1; q > h; q--)
+											{
+												rads[q] = rads[q - 1];
+												points[q] = points[q - 1];
+											}
+											rads[h] = r;
+											points[h] = i;
+											h = trpcount + 1;
+										}
+							}
+							
 							r = 0;
 							for (int h = 0; h < trpcount; h++)
 							{
-								rads[h] = sqrt(rads[h + 1]);
+								//rads[h] = sqrt(rads[h + 1]);
 								w = 1 / (1 + rads[h]);
 								r += correct[n][points[h]].z * w;
 								k += w;
@@ -3633,16 +3646,18 @@ namespace fsl
 						{
 							for (int i = z; i < TZ + 1; i++)
 								GetVoxel(x, y, i) = 1;
-							
+							z = 0;
+
 						}
 						if (TZ < z)
 						{
-							for (int i = TZ + 1; i <= z; i++)
+							for (int i = TZ + 1; i <= 100; i++)
 								GetVoxel(x, y, i) = 0;
-							z = TZ + 2;
+							z = 0;
 						}
 					}
 				}
+			}
 
 		for (int i = 0; i < ch.size(); i++)
 		{
@@ -3681,7 +3696,7 @@ namespace fsl
 					}
 				}
 			}
-			cv::imshow("BestStopaDebug", d1);
+			cv::imshow("BestStopaDebug2", d1);
 			cv::imshow("Fre", Fre);
 			cv::waitKey();
 
