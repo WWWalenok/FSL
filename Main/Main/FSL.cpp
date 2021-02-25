@@ -3409,7 +3409,7 @@ namespace fsl
 				correct[n][i] = (correct[n][i] - Cen3) * sb;
 				float tx = correct[n][i].x * co - correct[n][i].y * si;
 				float ty = correct[n][i].x * si + correct[n][i].y * co;
-				correct[n][i] = Cen3 + P3 + Vector3(tx, ty, correct[n][i].z);
+				correct[n][i] = Cen3 + P3 + Vector3(tx + VoxelX / 2.0, ty + VoxelY / 2.0, correct[n][i].z);
 			}
 #ifdef BestStopaDebug
 			{
@@ -3429,7 +3429,7 @@ namespace fsl
 				d2 = d1.clone();
 				for (int j = 0; j < chsizes[n]; j++)
 				{
-					tx = correct[n][j].x + VoxelX / 2.0; ty = correct[n][j].y + VoxelY / 2.0;
+					tx = correct[n][j].x; ty = correct[n][j].y;
 					if (tx > 0 && ty > 0 && tx < VoxelX - 1 && ty < VoxelY - 1) d2.at<uch>(tx, ty) = 255;
 				}
 				cv::imshow("BestStopaDebug", d2);

@@ -164,11 +164,11 @@ Vector3(0.320437, 0.532019, 0.783667)}
 		cams.push_back(t);
 		focuss.push_back(ert[i]);
 	}
-	//std::ofstream fout(filepath + "voxel.txt");
-	//fout.clear();
+	std::ofstream fout(filepath + "vox.txt");
+	fout.clear();
 	//fsl::InitFrame(7, imgs, maxx, maxy);
 	fsl::Prepare();
-	//fsl::AttachOut(&fout);
+	fsl::AttachOut(&fout);
 	//fsl::GetFirsCamPos();
 	//fsl::GetBestedBorder();
 	//fsl::GetNewCamPos();
@@ -183,5 +183,6 @@ Vector3(0.320437, 0.532019, 0.783667)}
 	fsl::DebugInitVoxel(&fin);
 	fsl::InitEtalon(male,maleS,female,femaleS);
 	fsl::BestStopa();
+	fsl::Out();
 	system("pause");
 };
