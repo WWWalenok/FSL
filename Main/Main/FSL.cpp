@@ -18,13 +18,13 @@
 
 #define _GetBorderDispDebug
 
-#define _UpdateOreintDebug
+#define UpdateOreintDebug
 
-#define _GetFootDebug
+#define GetFootDebug
 
-#define _GetFirstVoxelDebug
+#define GetFirstVoxelDebug
 
-#define _BestTopDebug
+#define BestTopDebug
 
 #define BestStopaDebug
 
@@ -1625,43 +1625,120 @@ namespace fsl
 			{
 				for (int i = 0; i < 4; i++) { cams[u][i].x = -cams[u][i].x; cams[u][i].y = -cams[u][i].y; }
 			}
+
+			{
+				while (counter.size() <= u) Add_counter;
+				Quaternion rot(0, 0, 1, CFfbb);
+				for (int i = 0; i < 80; i++)
+				{
+					proectednoga[i] = sphNoga[i]; proectednoga[i].x *= CFzbb; proectednoga[i].y *= CFzbb * blor; proectednoga[i].z *= CFzbb;
+					proectednoga[i] = rot.operator&(proectednoga[i]);
+					proectednoga[i].x += CFxbb; proectednoga[i].y += CFybb;
+					P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
+					r = focuss[u] / K / (P * cams[u][3]);
+					proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
+					proectednoga[i].z = t;
+				}
+				for (int x = 0; x < immaxX; x++)
+				{
+					for (int y = 0; y < immaxY; y++)
+					{
+						bool isin = false;
+						for (int i = 0; i < 80 && !isin; i++)
+						{
+							t = sphNogaR[i] * 500;
+							t = t * t / (proectednoga[i].z);
+							P = Vector3(proectednoga[i].x - x, proectednoga[i].y - y, 0);
+							if (t > P.x * P.x + P.y * P.y)
+								isin = true;
+						}
+						counter[u][x][y] = (isin) ? 0 : 0;
+					}
+
+				}
+			}
+
 #ifdef DebugConsole
 			std::cout << cams[u][0].x << ' ' << cams[u][0].y << std::endl;
 #endif // DEBUG
 #ifdef UpdateOreintDebug
-			Quaternion rot(0, 0, 1, CFfbb);
-			for (int i = 0; i < 80; i++)
 			{
-				proectednoga[i] = sphNoga[i]; proectednoga[i].x *= CFzbb; proectednoga[i].y *= CFzbb * blor; proectednoga[i].z *= CFzbb;
-				proectednoga[i] = rot.operator&(proectednoga[i]);
-				proectednoga[i].x += CFxbb; proectednoga[i].y += CFybb;
-				P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
-				r = focuss[u] / K / (P * cams[u][3]);
-				proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
-				proectednoga[i].z = t;
-			}
-			for (int x = 0; x < immaxX; x++)
-			{
-				for (int y = 0; y < immaxY; y++)
 				{
-					bool isin = false;
-					for (int i = 0; i < 80 && !isin; i++)
+					while (counter.size() <= u) Add_counter;
+					Quaternion rot(0, 0, 1, CFfbb);
+					for (int i = 0; i < 80; i++)
 					{
-						t = sphNogaR[i] * 900;
-						t = t * t / (proectednoga[i].z);
-						P = Vector3(proectednoga[i].x - x, proectednoga[i].y - y, 0);
-						if (t > P.x * P.x + P.y * P.y)
-							isin = true;
+						proectednoga[i] = sphNoga[i]; proectednoga[i].x *= CFzbb; proectednoga[i].y *= CFzbb * blor; proectednoga[i].z *= CFzbb;
+						proectednoga[i] = rot.operator&(proectednoga[i]);
+						proectednoga[i].x += CFxbb; proectednoga[i].y += CFybb;
+						P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
+						r = focuss[u] / K / (P * cams[u][3]);
+						proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
+						proectednoga[i].z = t;
 					}
-					d11.at<uch>(x, y) = (isin) ? 255 : 0;
+					for (int x = 0; x < immaxX; x++)
+					{
+						for (int y = 0; y < immaxY; y++)
+						{
+							bool isin = false;
+							for (int i = 0; i < 80 && !isin; i++)
+							{
+								t = sphNogaR[i] * 900;
+								t = t * t / (proectednoga[i].z);
+								P = Vector3(proectednoga[i].x - x, proectednoga[i].y - y, 0);
+								if (t > P.x * P.x + P.y * P.y)
+									isin = true;
+							}
+							counter[u][x][y] = (isin) ? 255 : 0;
+						}
+
+					}
 				}
+				for (int x = 0; x < immaxX; x++)
+				{
+					for (int y = 0; y < immaxY; y++)
+					{
+						d11.at<uch>(x, y) = counter[u][x][y];
+					}
 
+				}
+				cv::resize(d11, d11, cv::Size(), 0.25, 0.25);
+				cv::imshow("UpdateOreintDebug" + std::to_string(u), d11);
+				cv::imshow("UpdateOreintDebug", d3);
+
+				cv::waitKey(1);
+				{
+					while (counter.size() <= u) Add_counter;
+					Quaternion rot(0, 0, 1, CFfbb);
+					for (int i = 0; i < 80; i++)
+					{
+						proectednoga[i] = sphNoga[i]; proectednoga[i].x *= CFzbb; proectednoga[i].y *= CFzbb * blor; proectednoga[i].z *= CFzbb;
+						proectednoga[i] = rot.operator&(proectednoga[i]);
+						proectednoga[i].x += CFxbb; proectednoga[i].y += CFybb;
+						P = (proectednoga[i] + cams[u][0]); t = P.x * P.x + P.y * P.y + P.z * P.z;
+						r = focuss[u] / K / (P * cams[u][3]);
+						proectednoga[i] = Vector3(P * cams[u][1] * r + immaxX / 2, P * cams[u][2] * r + immaxY / 2, focuss[u] / K);
+						proectednoga[i].z = t;
+					}
+					for (int x = 0; x < immaxX; x++)
+					{
+						for (int y = 0; y < immaxY; y++)
+						{
+							bool isin = false;
+							for (int i = 0; i < 80 && !isin; i++)
+							{
+								t = sphNogaR[i] * 500;
+								t = t * t / (proectednoga[i].z);
+								P = Vector3(proectednoga[i].x - x, proectednoga[i].y - y, 0);
+								if (t > P.x * P.x + P.y * P.y)
+									isin = true;
+							}
+							counter[u][x][y] = (isin) ? 0 : 0;
+						}
+
+					}
+				}
 			}
-			cv::resize(d11, d11, cv::Size(), 0.25, 0.25);
-			cv::imshow("UpdateOreintDebug" + std::to_string(u), d11);
-			cv::imshow("UpdateOreintDebug", d3);
-
-			cv::waitKey(1);
 #endif // UpdateOreintDebug
 
 		}
@@ -2186,7 +2263,7 @@ namespace fsl
 		float r, te;
 		Vector3 P, A, B, C, D;
 		Vector2 Ko, Te, Li;
-		Vector2 M, V1, V2, DinV, R1, R2, R3, R4, X, Y;
+		Vector2 M, V1, V2, DinV, R1, R2, R3, R4, R5, R6, R7, R8, X, Y;
 		for (int u = 0; u < framecount; u++)
 		{
 #ifdef DebugConsole
@@ -2309,29 +2386,38 @@ namespace fsl
 					d2 = d1.clone();
 				}
 #endif // GetFootDebug
-				float kv = 3 + 30.0 * (time / mtime)* (time / mtime);
-				float  rmid = (0.00156*rmids*(1 - time / mtime) + 0.4) * 0.47;
+				float kv = 3 + 30.0 * (time / mtime)* (time / mtime), Tem;
+				float  rmid = (0.0005*rmids*(1 - time / mtime) + 0.4) * 0.47;
 				//rmid = 0;
 				for (int i = 1; i < 200; i++) { points[i].a.x = 0; points[i].a.y = 0; }
 				float k = 0, fi = 0, r1, r2, r3, r4;
 				bool isCorner;
-				for (int i_2 = 200 - 2, i_1 = 200 - 1, i0 = 0, i1 = 1, i2 = 2, j1 = 200 - 20, j2 = 200 - 10, j3 = 10, j4 = 20; i0 < 200; i0++, i_2 = ckl(i_2 + 1, 200), i_1 = ckl(i_1 + 1, 200), i1 = ckl(i1 + 1, 200), i2 = ckl(i2 + 1, 200), j1 = ckl(j1 + 1, 200), j2 = ckl(j2 + 1, 200), j3 = ckl(j3 + 1, 200), j4 = ckl(j4 + 1, 200))
+				for (int i_2 = 200 - 2, i_1 = 200 - 1, i0 = 0, i1 = 1, i2 = 2, j1 = 200 - random * 10 - 4, j2 = j1 + (200 - 2 - j1) * random + 1, j4 = random * 10 + 4, j3 = j4 - 1 + (2 - j4) * random; i0 < 200; i0++, i_2 = ckl(i_2 + 1, 200), i_1 = ckl(i_1 + 1, 200), i1 = ckl(i1 + 1, 200), i2 = ckl(i2 + 1, 200), j1 = ckl(j1 + 1, 200), j2 = ckl(j2 + 1, 200), j3 = ckl(j3 + 1, 200), j4 = ckl(j4 + 1, 200))
 				{
 					M = (points[i_1].loc + points[i1].loc) * 0.5;
-					X = points[i0].loc - M;
+					X = M - points[i0].loc;
 					if (X.x != 0 && X.y != 0) X.SetLenght(1);
 					DinV.x = (points[i_1].v.x + points[i1].v.x - points[i0].v.x * 2.0);
 					DinV.y = (points[i_1].v.y + points[i1].v.y - points[i0].v.y * 2.0);
+
 					for (int i = -3; i < 4; i++)
 					{
 						V1 = points[i0].loc + X * ots[abs(i)] * ((i > 0) ? 1 : -1);
 						buff[i + 3] = imgs[u]GetI((int)V1.x, (int)V1.y);
+						//if(abs(i) == 1)Tem = counter[u]GetI((int)V1.x, (int)V1.y) * i;
 					}
+					//R5.x = X.x * Tem * 1000; R5.y = X.y * Tem * 1000;
 					if (((points[i1].loc.x - points[i_1].loc.x)*(points[i0].loc.y - points[i_1].loc.y) - (points[i1].loc.y - points[i_1].loc.y)*(points[i0].loc.x - points[i_1].loc.x)) > 0) k = -1; else k = 1;
 					isCorner = false; if (time < mtime / 8) for (int i = 0; i < 4; i++) if (abs(lineK[i][0] * points[i0].loc.x + lineK[i][1] * points[i0].loc.y + lineK[i][2]) < 6) isCorner = true;
 					if (!isCorner)
 						fi = g * (0.6 * (buff[2] - 2 * buff[3] + buff[4]) + 0.25 * (buff[1] - 2 * buff[3] + buff[5]) + 0.15 * (buff[0] - 2 * buff[3] + buff[6]))*k;
-					if (abs(buff[0] - buff[4]) + abs(buff[1] - buff[5]) + abs(buff[0] - buff[6]) < 40 * 3) if (buff[1] < 40 && buff[5] < 40) fi += 1500 * k;
+					float fill = 1;
+					if (abs(buff[0] - buff[4]) + abs(buff[1] - buff[5]) + abs(buff[0] - buff[6]) < 40 * 3) if (buff[1] < 40 && buff[5] < 40)
+					{
+						fi += 1500 * k;
+						fill = 0.5;
+					}
+					//if (buff[0] + buff[1] + buff[2] < 40 * 3) if (buff[3] < 40) fi += 30 * k * (time / mtime * 0.8 + 0.2);
 					points[i0].a = X * fi + DinV * 5;
 					V1 = points[i0].loc; V1.x -= Ks32[u].x; V1.y -= Ks32[u].y; r3 = V1.GetLenght();
 					V2 = points[i0].loc; V2.x -= Ks51[u].x; V2.y -= Ks51[u].y; r4 = V2.GetLenght();
@@ -2339,18 +2425,18 @@ namespace fsl
 					else { V1.x = V1.x / r3 * 30000; V1.y = V1.y / r3 * 30000; }
 					if (r4 > 7 + (mtime - time) / mtime * 10) { V2.x = 0; V2.y = 0; }
 					else { V2.x = V2.x / r4 * 30000; V2.y = V2.y / r4 * 30000; }
-					R1 = (points[i_1].loc - points[i0].loc); r1 = R1.GetLenght() + 1e-20;
-					R2 = (points[i1].loc - points[i0].loc); r2 = R2.GetLenght() + 1e-20;
-					//R3 = (points[i_2].loc - points[i0].loc); r3 = R3.GetLenght() + 1e-20;
-					//R4 = (points[i2].loc - points[i0].loc); r4 = R4.GetLenght() + 1e-20;
-					R4 = (points[j1].loc - points[i0].loc); R4 = R4 / (R4.x * R4.x + R4.y * R4.y) * g;
-					R3 = (points[j2].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y) * g;
-					R3 = (points[j3].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y) * g;
-					R3 = (points[j4].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y) * g;
-					//points[i1].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2 + R3.x * (rmid * 2 - r3) / r3 * 0.01 + R4.x * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
-					//points[i1].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2 + R3.y * (rmid * 2 - r3) / r3 * 0.01 + R4.y * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
-					points[i0].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i0].v.x + V1.x + V2.x + R4.x;
-					points[i0].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i0].v.y + V1.y + V2.y + R4.y;
+					R1 = (points[i0].loc - points[i_1].loc); r1 = R1.GetLenght() + 1e-20;
+					R2 = (points[i0].loc - points[i1].loc); r2 = R2.GetLenght() + 1e-20;
+					R3 = (points[i_2].loc - points[i0].loc); r3 = R3.GetLenght() + 1e-20;
+					R4 = (points[i2].loc - points[i0].loc); r4 = R4.GetLenght() + 1e-20;
+					//R4 = (points[j1].loc - points[i0].loc); R4 = R4 / (R4.x * R4.x + R4.y * R4.y + 0.01) * g * -25;
+					//R3 = (points[j2].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y + 0.01) * g * -25;
+					//R3 = (points[j3].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y + 0.01) * g * -25;
+					//R3 = (points[j4].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y + 0.01) * g * -25;
+					//points[i0].a.x += c * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2 + R3.x * (rmid * 2 - r3) / r3 * 0.01 + R4.x * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.x - kv * points[i1].v.x + V1.x + V2.x;
+					//points[i0].a.y += c * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2 + R3.y * (rmid * 2 - r3) / r3 * 0.01 + R4.y * (rmid * 2 - r4) / r4 * 0.01) + d * DinV.y - kv * points[i1].v.y + V1.y + V2.y;
+					points[i0].a.x += c * fill * (R1.x * (rmid - r1) / r1 + R2.x * (rmid - r2) / r2) + d * DinV.x - kv * points[i0].v.x + V1.x + V2.x;
+					points[i0].a.y += c * fill * (R1.y * (rmid - r1) / r1 + R2.y * (rmid - r2) / r2) + d * DinV.y - kv * points[i0].v.y + V1.y + V2.y;
 
 
 				}
@@ -2364,7 +2450,8 @@ namespace fsl
 						i1 = 0;
 				}
 #ifdef GetFootDebug
-				if (time % diskount == 0)
+				d2 = d1.clone();
+				if (time % 10 == 0)
 				{
 					for (int i = 1; i < 200; i++)
 						for (int x = -1; x < 2; x++)for (int y = -1; y < 2; y++)
@@ -2374,7 +2461,7 @@ namespace fsl
 							d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
 						}
 					cv::imshow("GetFootDebug", d2);
-					cv::waitKey(1);
+					cv::waitKey();
 				}
 #endif // GetFootDebug
 			}
@@ -3525,7 +3612,7 @@ namespace fsl
 			}
 			cv::imshow("BestStopaDebug2", d1);
 			cv::imshow("Fre", Fre);
-			cv::waitKey(1);
+			cv::waitKey();
 		}
 #endif // BestStopaDebug
 
@@ -3697,7 +3784,7 @@ namespace fsl
 				}
 			}
 			cv::imshow("BestStopaDebug2", d1);
-			cv::imshow("Fre", Fre);
+			cv::imshow("Fre3", Fre);
 			cv::waitKey();
 
 		}

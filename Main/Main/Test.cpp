@@ -8,7 +8,7 @@
 
 int main()
 {
-	std::string filepath = "C:\\In\\Foto\\1\\";
+	std::string filepath = "C:\\In\\Foto\\TestPod1\\";
 
 	std::string fnames[7]{ "1.jpg","2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg" };
 
@@ -116,46 +116,47 @@ int main()
 	std::vector<fsl::Vector3*> cams;
 	fsl::Vector3 tcam[7][4]
 	{
-		{ Vector3(146.454, -320.45, 532.073),
-Vector3(0.270018, -0.821729, -0.498484),
-Vector3(-0.94579, -0.319238, 0.0139353),
-Vector3(0.170968, -0.468746, 0.865318) },
-		{ Vector3(-1.34209, -378.289, 387.734),
-Vector3(-0.0958808, -0.721271, -0.683523),
-Vector3(-0.993802, 0.0749839, 0.06028),
-Vector3(-0.00779747, -0.68705, 0.726087) },
-		{ Vector3(-201.12, -189.953, 454.153),
-Vector3(-0.621523, -0.530666, -0.573349),
-Vector3(-0.683316, 0.724853, 0.0698392),
-Vector3(-0.379702, -0.43653, 0.815637) },
-		{ Vector3(-311.884, 20.9627, 562.429),
-Vector3(-0.851977, 0.022531, -0.519868),
-Vector3(0.061181, 0.995045, -0.0571405),
-Vector3(-0.516803, 0.080613, 0.850449) },
-		{ Vector3(-5.89123, 109.014, 182.213),
-Vector3(-0.544956, 0.743729, -0.382775),
-Vector3(0.833293, 0.530427, -0.155741),
-Vector3(-0.0872098, 0.403856, 0.90885) },
-		{ Vector3(1.44728, 316.039, 416.221),
-Vector3(-0.00121847, 0.835258, -0.54679),
-Vector3(0.997966, 0.016064, 0.022315),
-Vector3(-0.027467, 0.546538, 0.834934) },
-		{ Vector3(220.761, 297.56, 443.751),
-Vector3(0.329264, 0.71171, -0.617803),
-Vector3(0.886572, -0.456075, -0.0528919),
-Vector3(0.320437, 0.532019, 0.783667)}
+	{ Vector3(97.0662, -439.403, 534.41),
+		Vector3(0.405431, -0.675282, -0.613391),
+		Vector3(-0.89967, -0.410861, -0.142336),
+		Vector3(0.156106, -0.610354, 0.775118) },
+	{ Vector3(-97.4886, -386.183, 540.56),
+Vector3(-0.102176, -0.800619, -0.58754),
+Vector3(-0.983257, 0.164989, -0.0538317),
+Vector3(-0.140281, -0.573202, 0.805477) },
+		{ Vector3(-294.362, -234.17, 539.949),
+Vector3(-0.597892, -0.547696, -0.5824),
+Vector3(-0.652415, 0.754669, -0.0399304),
+Vector3(-0.462206, -0.356723, 0.809966) },
+		{ Vector3(343.533, -9.11243, 531.807),
+Vector3(0.839516, 0.0288171, -0.53946),
+Vector3(0.0068779, -0.997516, -0.0425821),
+Vector3(0.5403, -0.0320946, 0.839107) },
+		{ Vector3(-253.958, 276.161, 587.901),
+Vector3(-0.651497, 0.543845, -0.525754),
+Vector3(0.657841, 0.750036, -0.0393292),
+Vector3(-0.373768, 0.372304, 0.848274) },
+		{ Vector3(-35.9843, 295.701, 516.529),
+Vector3(-0.179665, 0.848773, -0.493899),
+Vector3(0.980111, 0.186533, -0.0359749),
+Vector3(-0.0617587, 0.491852, 0.867721) },
+		{ Vector3(152.554, 329.832, 565.437),
+Vector3(0.39711, 0.755354, -0.518053),
+Vector3(0.891446, -0.448539, 0.0293347),
+Vector3(0.210579, 0.474299, 0.852974) }
 	};
 
 	float ert[7]
 	{
-	38.0804 ,
-	37.0688 ,
-	31.0471 ,
-	37.8161 ,
-	11.7546 ,
-	29.7091 ,
-	33.4733
+		38.4643,
+			36.3287,
+			35.662,
+			34.896,
+			36.7277,
+			31.4694,
+			36.1099
 	};
+
 	
 	for (int i = 0; i < 7; i++)
 	{
@@ -164,25 +165,42 @@ Vector3(0.320437, 0.532019, 0.783667)}
 		cams.push_back(t);
 		focuss.push_back(ert[i]);
 	}
-	std::ofstream fout(filepath + "vox.txt");
-	fout.clear();
-	//fsl::InitFrame(7, imgs, maxx, maxy);
+	fsl::InitFrame(7, imgs, maxx, maxy);
 	fsl::Prepare();
-	fsl::AttachOut(&fout);
-	//fsl::GetFirsCamPos();
-	//fsl::GetBestedBorder();
-	//fsl::GetNewCamPos();
-	//fsl::GetBorderDisp();
+
+	fsl::GetFirsCamPos();
+	fsl::GetBestedBorder();
+	fsl::GetNewCamPos();
+	fsl::GetBorderDisp();
 	//fsl::DebugInitCamPos(cams, focuss);
-	//fsl::UpdateOreint();
-	//fsl::GetFoot();
-	//fsl::GetFirstVoxel();
-	//fsl::BestTop();
-	//fsl::Out();
-	std::ifstream fin(filepath + "voxel.txt");
-	fsl::DebugInitVoxel(&fin);
+	fsl::UpdateOreint();
+	fsl::GetFoot();
+
+	std::ofstream fout1(filepath + "voxel.txt");
+	fsl::AttachOut(&fout1);
+	fsl::GetFirstVoxel();
+	fsl::Out();
+	fout1.close();
+
+	std::ifstream fin1(filepath + "voxel.txt");
+	fsl::DebugInitVoxel(&fin1);
+	fin1.close();
+
+	std::ofstream fout2(filepath + "voxel_best.txt");
+	fsl::AttachOut(&fout2);
+	fsl::BestTop();
+	fsl::Out();
+	fout2.close();
+
+	std::ifstream fin2(filepath + "voxel_best.txt");
+	fsl::DebugInitVoxel(&fin2);
+	fin2.close();
+
+	std::ofstream fout3(filepath + "voxel_bestbest.txt");
+	fsl::AttachOut(&fout3);
 	fsl::InitEtalon(male,maleS,female,femaleS);
 	fsl::BestStopa();
 	fsl::Out();
+	fout3.close();
 	system("pause");
 };
