@@ -8,7 +8,7 @@
 
 int main()
 {
-	std::string filepath = "C:\\In\\Foto\\TestPod1\\";
+	std::string filepath = "C:\\In\\Foto\\TestPodG\\";
 
 	std::string fnames[7]{ "1.jpg","2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg" };
 
@@ -188,6 +188,7 @@ Vector3(0.210579, 0.474299, 0.852974) }
 
 	std::ofstream fout2(filepath + "voxel_best.txt");
 	fsl::AttachOut(&fout2);
+	fsl::Centrovka();
 	fsl::BestTop();
 	fsl::Out();
 	fout2.close();
@@ -199,6 +200,7 @@ Vector3(0.210579, 0.474299, 0.852974) }
 	std::ofstream fout3(filepath + "voxel_bestbest.txt");
 	fsl::AttachOut(&fout3);
 	fsl::InitEtalon(male,maleS,female,femaleS);
+	fsl::Centrovka();
 	fsl::BestStopa();
 	fsl::Out();
 	fout3.close();

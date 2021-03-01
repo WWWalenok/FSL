@@ -18,7 +18,7 @@
 
 #define _GetBorderDispDebug
 
-#define UpdateOreintDebug
+#define _UpdateOreintDebug
 
 #define GetFootDebug
 
@@ -2387,7 +2387,7 @@ namespace fsl
 				}
 #endif // GetFootDebug
 				float kv = 3 + 30.0 * (time / mtime)* (time / mtime), Tem;
-				float  rmid = (0.0005*rmids*(1 - time / mtime) + 0.4) * 0.47;
+				float  rmid = (0.0015*rmids*(1 - time / mtime) + 0.4) * 0.47;
 				//rmid = 0;
 				for (int i = 1; i < 200; i++) { points[i].a.x = 0; points[i].a.y = 0; }
 				float k = 0, fi = 0, r1, r2, r3, r4;
@@ -2415,7 +2415,6 @@ namespace fsl
 					if (abs(buff[0] - buff[4]) + abs(buff[1] - buff[5]) + abs(buff[0] - buff[6]) < 40 * 3) if (buff[1] < 40 && buff[5] < 40)
 					{
 						fi += 1500 * k;
-						fill = 0.5;
 					}
 					//if (buff[0] + buff[1] + buff[2] < 40 * 3) if (buff[3] < 40) fi += 30 * k * (time / mtime * 0.8 + 0.2);
 					points[i0].a = X * fi + DinV * 5;
@@ -2427,8 +2426,8 @@ namespace fsl
 					else { V2.x = V2.x / r4 * 30000; V2.y = V2.y / r4 * 30000; }
 					R1 = (points[i0].loc - points[i_1].loc); r1 = R1.GetLenght() + 1e-20;
 					R2 = (points[i0].loc - points[i1].loc); r2 = R2.GetLenght() + 1e-20;
-					R3 = (points[i_2].loc - points[i0].loc); r3 = R3.GetLenght() + 1e-20;
-					R4 = (points[i2].loc - points[i0].loc); r4 = R4.GetLenght() + 1e-20;
+					//R3 = (points[i_2].loc - points[i0].loc); r3 = R3.GetLenght() + 1e-20;
+					//R4 = (points[i2].loc - points[i0].loc); r4 = R4.GetLenght() + 1e-20;
 					//R4 = (points[j1].loc - points[i0].loc); R4 = R4 / (R4.x * R4.x + R4.y * R4.y + 0.01) * g * -25;
 					//R3 = (points[j2].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y + 0.01) * g * -25;
 					//R3 = (points[j3].loc - points[i0].loc); R4 = R4 + R3 / (R3.x * R3.x + R3.y * R3.y + 0.01) * g * -25;
@@ -2451,7 +2450,7 @@ namespace fsl
 				}
 #ifdef GetFootDebug
 				d2 = d1.clone();
-				if (time % 10 == 0)
+				if (time % 100 == 0)
 				{
 					for (int i = 1; i < 200; i++)
 						for (int x = -1; x < 2; x++)for (int y = -1; y < 2; y++)
@@ -2461,7 +2460,7 @@ namespace fsl
 							d2.at<uch>(_x, _y) = (d1.at<uch>(_x, _y) > 128) ? 0 : 255;
 						}
 					cv::imshow("GetFootDebug", d2);
-					cv::waitKey();
+					cv::waitKey(1);
 				}
 #endif // GetFootDebug
 			}
@@ -2918,7 +2917,7 @@ namespace fsl
 		}
 		delete[] ix; delete[] iy;
 		int best = 0;
-		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) USGetVoxel(x, y, z) = 1;
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) USGetVoxel(x, y, z) = 2;
 		float *KritsVar = new float[varcount];
 		float *dXbb = new float[varcount], *dYbb = new float[varcount], *dSbb = new float[varcount], *dYSbb = new float[varcount], *dFIbb = new float[varcount];
 		int *oreinVar = new int[varcount];
@@ -2933,9 +2932,9 @@ namespace fsl
 				for (int x = 0; x < VoxelX; x += bsize) for (int y = 0; y < VoxelY; y += bsize) if (USGetVoxel(x, y, u) == 1)
 				{
 					bool istrue = false;
-					for (int z = 0; z < 10; z++)
+					for (int z = 0; z < 30; z++)
 					{
-						P.x = (x - VoxelX / 2.0) * VoxelS; P.y = (y - VoxelY / 2.0) * VoxelS; P.z = -z;
+						P.x = (x - VoxelX / 2.0) * VoxelS; P.y = (y - VoxelY / 2.0) * VoxelS; P.z = z - 15;
 						ToCam(P, cams[k][0], cams[k][1], cams[k][2], cams[k][3], focuss[k], K);
 						if (counter[k]GetI((int)P.x, (int)P.y) > 0)
 							istrue = true;
@@ -2961,7 +2960,7 @@ namespace fsl
 #ifdef GetFirstVoxelDebug
 			for (int x = 0; x < VoxelX; x++) for (int y = 0; y < VoxelY; y++) if (USGetVoxel(x, y, u) == 1) VoxelL.at<uch>(x, y) = 255; else VoxelL.at<uch>(x, y) = 0;
 			cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
-			cv::waitKey(1);
+			cv::waitKey();
 #endif // GetFirstVoxelDebug
 
 			KritsVar[u] = -1e20;
@@ -3106,6 +3105,12 @@ namespace fsl
 			}
 		}
 
+		//for (int i = 0; i < varcount; i++) KritsVar[i] *= ((i > 1 && i < framecount + 1) ? 0.94 : ((i == 1) ? 1 : 0.88)) * ((variant[i][0] == 0) ? 0.96 : 1)* ((variant[i][framecount - 1] == 0) ? 0.96 : 1) * ((variant[i][framecount / 2 + 1] == 0) ? 0.94 : 1);
+
+		best = 0;
+
+		for (int i = 0; i < varcount; i++)if (KritsVar[best] < KritsVar[i]) best = i;
+
 #ifdef GetFirstVoxelDebug
 		{
 			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)VoxelL.at<uch>(x, y) = (USGetVoxel(x, y, best) > 0) ? 75 : 0;
@@ -3126,16 +3131,13 @@ namespace fsl
 			}
 
 			cv::imshow("GetFirstVoxelDebugBVoxelLayer", VoxelL);
-			cv::waitKey(1);
+			cv::waitKey(0);
 		}
 #endif // GetFirstVoxelDebug
-		for (int i = 0; i < varcount; i++) KritsVar[i] *= ((i > 1 && i < framecount + 1) ? 0.94 : ((i == 1) ? 1 : 0.88)) * ((variant[i][0] == 0) ? 0.96 : 1)* ((variant[i][framecount - 1] == 0) ? 0.96 : 1) * ((variant[i][framecount / 2 + 1] == 0) ? 0.94 : 1);
 
-		best = 0;
-
-		for (int i = 0; i < varcount; i++)if (KritsVar[best] < KritsVar[i]) best = i;
 
 		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++)for (int z = 0; z < VoxelZ; z++) USGetVoxel(x, y, z) = 1;
+
 
 #ifdef DebugConsole
 		std::cout << "SelectBestDone" << std::endl;
@@ -4517,7 +4519,47 @@ namespace fsl
 
 	void Centrovka()
 	{
-
+		float maxX = -1, maxY = -1, minX = VoxelX, minY = VoxelY;
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < (VoxelZ / 10 < 30) ? 30 : VoxelZ / 10; z++)
+		{
+			if (GetVoxel(x, y, z) > 0)
+			{
+				if (x > maxX)maxX = x;
+				if (x < minX)minX = x;
+				if (y > maxY)maxY = y;
+				if (y < minY)minY = y;
+			}
+		}
+		int dx = VoxelX / 2.0 - (maxX + minX) / 2.0;
+		int dy = VoxelY / 2.0 - (maxY + minY) / 2.0;
+		if (dx < 0)
+		{
+			for (int x = 0; x < VoxelX + dx; x++)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < VoxelZ; z++)
+			{
+				GetVoxel(x, y, z) = GetVoxel(x - dx, y, z);
+			}
+		}
+		else if (dx != 0)
+		{
+			for (int x = VoxelX - 1; x >= dx; x--)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < VoxelZ; z++)
+			{
+				GetVoxel(x, y, z) = GetVoxel(x - dx, y, z);
+			}
+		}
+		if (dy < 0)
+		{
+			for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY + dy; y++) for (int z = 0; z < VoxelZ; z++)
+			{
+				GetVoxel(x, y, z) = GetVoxel(x, y - dy, z);
+			}
+		}
+		else if (dy != 0)
+		{
+			for (int x = 0; x < VoxelX; x++)for (int y = VoxelY - 1; y >= dy; y--) for (int z = 0; z < VoxelZ; z++)
+			{
+				GetVoxel(x, y, z) = GetVoxel(x, y - dy, z);
+			}
+		}
 	}
 
 	void MakeKakScaner()
