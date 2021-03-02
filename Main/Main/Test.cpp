@@ -8,7 +8,7 @@
 
 int main()
 {
-	std::string filepath = "C:\\In\\Foto\\TestPodG\\";
+	std::string filepath = "C:\\In\\Foto\\2\\";
 
 	std::string fnames[7]{ "1.jpg","2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg" };
 
@@ -168,19 +168,19 @@ Vector3(0.210579, 0.474299, 0.852974) }
 	fsl::InitFrame(7, imgs, maxx, maxy);
 	fsl::Prepare();
 
-	fsl::GetFirsCamPos();
-	fsl::GetBestedBorder();
-	fsl::GetNewCamPos();
-	fsl::GetBorderDisp();
+	//fsl::GetFirsCamPos();
+	//fsl::GetBestedBorder();
+	//fsl::GetNewCamPos();
+	//fsl::GetBorderDisp();
 	//fsl::DebugInitCamPos(cams, focuss);
-	fsl::UpdateOreint();
-	fsl::GetFoot();
+	//fsl::UpdateOreint();
+	//fsl::GetFoot();
 
-	std::ofstream fout1(filepath + "voxel.txt");
-	fsl::AttachOut(&fout1);
-	fsl::GetFirstVoxel();
-	fsl::Out();
-	fout1.close();
+	//std::ofstream fout1(filepath + "voxel.txt");
+	//fsl::AttachOut(&fout1);
+	//fsl::GetFirstVoxel();
+	//fsl::Out();
+	//fout1.close();
 
 	std::ifstream fin1(filepath + "voxel.txt");
 	fsl::DebugInitVoxel(&fin1);

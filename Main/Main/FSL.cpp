@@ -4,6 +4,10 @@
 
 #ifdef _DEBUG
 
+#define DEBUG
+
+#define Debug
+
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -20,11 +24,11 @@
 
 #define _UpdateOreintDebug
 
-#define GetFootDebug
+#define _GetFootDebug
 
-#define GetFirstVoxelDebug
+#define _etFirstVoxelDebug
 
-#define BestTopDebug
+#define _BestTopDebug
 
 #define BestStopaDebug
 
@@ -3614,7 +3618,7 @@ namespace fsl
 			}
 			cv::imshow("BestStopaDebug2", d1);
 			cv::imshow("Fre", Fre);
-			cv::waitKey();
+			cv::waitKey(1);
 		}
 #endif // BestStopaDebug
 
@@ -3638,9 +3642,6 @@ namespace fsl
 
 		for (int n = 0; n < ch.size(); n++)
 			kriteries[n] /= summ;
-
-		for (int n = 0; n < ch.size(); n++)
-			kriteries[n] *= 0.5;
 		int maxn0 = 0;
 		for (int n = 0; n < ch.size(); n++)
 			if (kriteries[n] > kriteries[maxn0]) maxn0 = n;
@@ -3653,14 +3654,14 @@ namespace fsl
 		for (int n = 0; n < ch.size(); n++)
 			if (kriteries[n] > kriteries[maxn2] && kriteries[n] < kriteries[maxn1]) maxn2 = n;
 
-		for (int n = 0; n < ch.size(); n++)
+		/*for (int n = 0; n < ch.size(); n++)
 			if (kriteries[n] < kriteries[maxn2]) kriteries[n] = 0;
 		kriteries[maxn0] = 0.5;
 
 		kriteries[maxn1] = 0.3333;
 
 		kriteries[maxn2] = 0.1667;
-
+*/
 #ifdef DebugConsole
 		std::cout << "SelectBestBaseEnd" << std::endl;
 #endif // DEBUG
@@ -3704,7 +3705,7 @@ namespace fsl
 							{
 								r = (correct[n][i].x - x * VoxelS) * (correct[n][i].x - x * VoxelS) + (correct[n][i].y - y * VoxelS) * (correct[n][i].y - y * VoxelS) + (correct[n][i].z - z * VoxelS) * (correct[n][i].z - z * VoxelS);
 								if (r < rads[trpcount - 1])
-									for(int h = 0; h < trpcount; h++)
+									for (int h = 0; h < trpcount; h++)
 										if (r < rads[h])
 										{
 											for (int q = trpcount - 1; q > h; q--)
@@ -3717,7 +3718,7 @@ namespace fsl
 											h = trpcount + 1;
 										}
 							}
-							
+
 							r = 0;
 							for (int h = 0; h < trpcount; h++)
 							{
@@ -3787,7 +3788,7 @@ namespace fsl
 			}
 			cv::imshow("BestStopaDebug2", d1);
 			cv::imshow("Fre3", Fre);
-			cv::waitKey();
+			cv::waitKey(1);
 
 		}
 #endif // BestStopaDebug
@@ -3853,7 +3854,7 @@ namespace fsl
 			base = Vector3(base * Cams[u][1] * r + 200 / 2, base * Cams[u][2] * r + 100 / 2, focus / KS);
 			if (base.x >= 0 && base.x <= 199 && base.y >= 0 && base.y <= 99)
 				base.z = 1;
-}
+		}
 
 #endif // BestTopDebug
 		float *ix = new float[NS] { -120.415, -118.223, -107.241, -92.491, -76.224, -59.869, -43.488, -27.181, -10.797, 5.474, 21.693, 37.937, 54.23, 70.581, 86.815, 102.924, 118.374, 126.633, 123.11, 114.115, 102.974, 89.941, 76.335, 61.995, 45.691, 29.353, 13.098, -3.187, -19.441, -35.626, -51.862, -68.153, -84.333, -99.562, -112.899 };
@@ -3924,10 +3925,10 @@ namespace fsl
 		}
 		for3(NS)
 		{
-			ix[i1] = 1 + 0.002*(i1 - 17);
-			if ((i1 == 1) || (i1 == 2)) ix[i1] = ix[i1] * 7;
-			else
-				if ((i1 == 3) || (i1 == 4) || (i1 == 33) || (i1 == 34) || (i1 == 35)) ix[i1] = ix[i1] * 4;
+			ix[i1] = 1;//+0.002*(i1 - 17);
+			//if ((i1 == 1) || (i1 == 2)) ix[i1] = ix[i1] * 7;
+			//else
+			//	if ((i1 == 3) || (i1 == 4) || (i1 == 33) || (i1 == 34) || (i1 == 35)) ix[i1] = ix[i1] * 4;
 		}
 
 #ifdef BestTopDebug
@@ -3943,7 +3944,7 @@ namespace fsl
 				VoxelL.at<uch>(tx, ty) = 255 / (2 + _j / 3.0);
 			}
 			cv::imshow("BestTopDebugVoxelLayer", VoxelL);
-			cv::waitKey();
+			cv::waitKey(1);
 		}
 #endif // BestTopDebug
 
@@ -3985,9 +3986,9 @@ namespace fsl
 
 			if (E < 8)
 			{
-				G11 = -20;    G12 = 20;
-				G21 = -20;    G22 = 20;
-				G31 = 0.76;   G32 = 1.4;
+				G11 = -50;    G12 = 50;
+				G21 = -50;    G22 = 50;
+				G31 = 0.76;   G32 = 1.5;
 				G41 = -25 / 180 * PI; G42 = 25 / 180 * PI;
 				G51 = 0.7;   G52 = 1.4;
 			}
@@ -4076,7 +4077,9 @@ namespace fsl
 							tx = (tx < 0) ? 0 : ((tx > VoxelX - 1) ? VoxelX - 1 : tx);
 							ty = (ty < 0) ? 0 : ((ty > VoxelY - 1) ? VoxelY - 1 : ty);
 							VoxelL.at<uch>(tx, ty) = 255 / (1 + abs(_j) * 0.5);
-				}
+						}
+						cv::imshow("BestTopDebugVoxelLayer", VoxelL);
+						cv::waitKey(1);
 					}
 #endif // BestTopDebug
 				}
@@ -4087,12 +4090,12 @@ namespace fsl
 #ifdef BestTopDebug
 				{
 					cv::imshow("BestTopDebugVoxelLayer", VoxelL);
-					cv::waitKey();
+					cv::waitKey(1);
 				}
 #endif // BestTopDebug
 			}
 
-			}
+		}
 #ifdef DebugConsole
 		std::cout << "ChoseBestEnd" << std::endl;
 #endif // DEBUG
@@ -4284,10 +4287,11 @@ namespace fsl
 				dx = LegLeo[i].x; if (dx < 0) dx = 0; if (dx > VoxelX - 1)dx = VoxelX - 1;
 				dy = LegLeo[i].z; if (dy < 0) dy = 0; if (dy > VoxelZ - 1)dy = VoxelZ - 1;
 				Base2.at<uch>(dx, dy) = 255;
-		}
+			}
 			cv::imshow("BestTopDebugLayer", Base2);
 			cv::waitKey(1);
 		}
+		Base2 = cv::Mat(VoxelX, VoxelY, CV_8U);
 #endif // BestTopDebug
 
 		for (int z = 0; z < VoxelZ; z++) if (z > 40 * VoxelS)
@@ -4322,7 +4326,7 @@ namespace fsl
 				int oldx = Cen.x, oldy = Cen.y, x, y;
 				for (int r = 1; r < 200; r++)
 				{
-					x = Cen.x + r * co;
+					x = Cen.x + -r * co;
 					y = Cen.y + r * si;
 					if (x == oldx && y == oldy) continue;
 					else
@@ -4338,13 +4342,13 @@ namespace fsl
 
 				float bestr2 = 15;
 				float KritB = 1e20;
-				for (int i = 0; i < lLen; i++) if (abs(LegLeo[i].z - z * VoxelS) < 5)
+				for (int i = 0; i < lLen; i++) if (abs(LegLeo[i].z - z * VoxelS) < 10)
 				{
 					Vector2 U(LegLeo[i].x - Cen.x, LegLeo[i].y - Cen.y); U.SetLenght(1);
 					float alpha2 = (U.y > 0) ? acos(-U.x) : 2 * PI - acos(-U.x);
-					float r = (LegLeo[i].y - Cen.y) / (LegLeo[i].x - Cen.x);
-					float beta = (abs(r) > 1000) ? r / abs(r) * PI / 2.0 : atan(r);
-					if (LegLeo[i].x - Cen.x < 0) beta += PI;
+					//float r = (LegLeo[i].y - Cen.y) / (LegLeo[i].x - Cen.x);
+					//float beta = (abs(r) > 1000) ? r / abs(r) * PI / 2.0 : atan(r);
+					//if (LegLeo[i].x - Cen.x < 0) beta += PI;
 					if (abs(alpha2 - alpha) < 1 / 18.0 * PI)
 					{
 						r = sqrt((LegLeo[i].x - Cen.x) * (LegLeo[i].x - Cen.x) + (LegLeo[i].y - Cen.y) * (LegLeo[i].y - Cen.y));
@@ -4520,7 +4524,7 @@ namespace fsl
 	void Centrovka()
 	{
 		float maxX = -1, maxY = -1, minX = VoxelX, minY = VoxelY;
-		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < (VoxelZ / 10 < 30) ? 30 : VoxelZ / 10; z++)
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < ((VoxelZ / 10 < 30) ? 30 : VoxelZ / 10); z++)
 		{
 			if (GetVoxel(x, y, z) > 0)
 			{
@@ -4538,12 +4542,20 @@ namespace fsl
 			{
 				GetVoxel(x, y, z) = GetVoxel(x - dx, y, z);
 			}
+			for (int x = VoxelX + dx; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < VoxelZ; z++)
+			{
+				GetVoxel(x, y, z) = 0;
+			}
 		}
 		else if (dx != 0)
 		{
 			for (int x = VoxelX - 1; x >= dx; x--)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < VoxelZ; z++)
 			{
 				GetVoxel(x, y, z) = GetVoxel(x - dx, y, z);
+			}
+			for (int x = dx - 1; x >= 0; x--)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < VoxelZ; z++)
+			{
+				GetVoxel(x, y, z) = 0;
 			}
 		}
 		if (dy < 0)
@@ -4552,6 +4564,10 @@ namespace fsl
 			{
 				GetVoxel(x, y, z) = GetVoxel(x, y - dy, z);
 			}
+			for (int x = 0; x < VoxelX; x++)for (int y = VoxelY + dy; y < VoxelY; y++) for (int z = 0; z < VoxelZ; z++)
+			{
+				GetVoxel(x, y, z) = 0;
+			}
 		}
 		else if (dy != 0)
 		{
@@ -4559,7 +4575,28 @@ namespace fsl
 			{
 				GetVoxel(x, y, z) = GetVoxel(x, y - dy, z);
 			}
+			for (int x = 0; x < VoxelX; x++)for (int y = dy - 1; y >= 0; y--) for (int z = 0; z < VoxelZ; z++)
+			{
+				GetVoxel(x, y, z) = GetVoxel(x, y - dy, z);
+			}
 		}
+#ifdef DEBUG
+		maxX = -1, maxY = -1, minX = VoxelX, minY = VoxelY;
+
+		for (int x = 0; x < VoxelX; x++)for (int y = 0; y < VoxelY; y++) for (int z = 0; z < ((VoxelZ / 10 < 30) ? 30 : VoxelZ / 10); z++)
+		{
+			if (GetVoxel(x, y, z) > 0)
+			{
+				if (x > maxX)maxX = x;
+				if (x < minX)minX = x;
+				if (y > maxY)maxY = y;
+				if (y < minY)minY = y;
+			}
+		}
+		dx = VoxelX / 2.0 - (maxX + minX) / 2.0;
+		dy = VoxelY / 2.0 - (maxY + minY) / 2.0;
+#endif // _DEBUG
+
 	}
 
 	void MakeKakScaner()
@@ -4887,15 +4924,15 @@ namespace fsl
 			for (int y = 0; y < immaxY; y++)
 			{
 				d1.at<uch>(x, y) = blurred[0]USGetI(x, y);
+			}
 		}
-	}
 
 		cv::imshow("d2", d1);
 
 		cv::waitKey(1);
 
 #endif // M1
-}
+	}
 
 	void InitUserStat(bool male)
 	{
@@ -4927,15 +4964,15 @@ namespace fsl
 			for (int y = 0; y < immaxY; y++)
 			{
 				d1.at<uch>(x, y) = imgs[0]USGetI(x, y);
+			}
 		}
-	}
 
 		cv::imshow("d1", d1);
 
 		cv::waitKey();
 
 #endif // M1
-		}
+	}
 
 	void DebugInitCamPos(std::vector<Vector3*> _cams, std::vector<float> _focuss)
 	{
@@ -4982,20 +5019,20 @@ namespace fsl
 		char *temp = new char;
 		int dx = (VoxelX - maxX) / 2;
 		int dy = (VoxelY - maxY) / 2;
-		int dz = (VoxelZ - maxZ) / 2;
+		int dz = (VoxelZ - maxZ);
 		for (int x = (dx >= 0) ? 0 : dx; x < ((dx >= 0) ? VoxelX : VoxelX - dx); x++)
 		{
 			for (int y = (dy >= 0) ? 0 : dy; y < ((dy >= 0) ? VoxelY : VoxelY - dy); y++)
 			{
-				for (int z = (dz >= 0) ? 0 : dz; z < ((dz >= 0) ? VoxelZ : VoxelZ - dz); z++)
+				for (int z = 0; z < ((VoxelZ >= maxZ) ? VoxelZ : maxZ); z++)
 				{
-					if (x >= dx && x < VoxelX - dx && y >= dy && y < VoxelY - dy && z >= dz && z < VoxelZ - dz)
+					if (x >= dx && x < VoxelX - dx && y >= dy && y < VoxelY - dy && z < maxZ)
 						fin->read(temp, 1);
 					else
 						*temp = '0';
-					if (x >= 0 && x < VoxelX && y >= 0 && y < VoxelY && z >= 0 && z < VoxelZ)
+					if (x >= 0 && x < VoxelX && y >= 0 && y < VoxelY && z < VoxelZ)
 						USGetVoxel(x, y, z) = (*temp == '0') ? 0 : 1;
-					if (x >= dx && x < VoxelX - dx && y >= dy && y < VoxelY - dy && z >= dz && z < VoxelZ - dz)
+					if (x >= dx && x < VoxelX - dx && y >= dy && y < VoxelY - dy && z < maxZ)
 						fin->read(temp, 1);
 				}
 			}
@@ -5043,4 +5080,4 @@ namespace fsl
 
 		Out();
 	}
-	}
+}
